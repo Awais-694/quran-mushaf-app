@@ -10,6 +10,7 @@ export interface SurahProgress {
   totalWords: number;
   completed: boolean;
   lastPracticedAt: number;
+  lastAyahNumber?: number; // last recited ayah number
 }
 
 export interface DailyActivity {

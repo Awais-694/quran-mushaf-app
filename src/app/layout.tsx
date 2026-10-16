@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import Link from "next/link";
 import { SwRegister } from "@/components/common/SwRegister";
 import { ThemeInit } from "@/components/common/ThemeInit";
+import { BismillahSplash } from "@/components/common/BismillahSplash";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -17,6 +18,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en">
       <body className="bg-[#0b1510] text-[#e8f2ec] min-h-screen selection:bg-emerald-800 selection:text-white">
+        <BismillahSplash />
         <SwRegister />
         <ThemeInit />
         <header className="sticky top-0 z-40 backdrop-blur-xl bg-[#08140e]/95 border-b border-emerald-900/60 shadow-[0_4px_25px_rgba(0,0,0,0.5)]">

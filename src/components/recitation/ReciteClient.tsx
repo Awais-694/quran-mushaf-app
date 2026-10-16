@@ -159,12 +159,15 @@ export function ReciteClient({
     const rDelta = Math.max(0, revealed - savedRevealed.current);
     const mDelta = Math.max(0, mistakes - savedMistakes.current);
     const ex = await db.progress.get(surahNumber);
+    const lastWordIdx = Math.max(0, Math.min(revealed - 1, loaded.tokens.length - 1));
+    const currentAyah = loaded.tokens[lastWordIdx]?.ayahNumber || 1;
     await db.progress.put({
       surahNumber,
       revealedWords: Math.max(ex?.revealedWords ?? 0, revealed),
       totalWords: loaded.tokens.length,
       completed: completed || (ex?.completed ?? false),
       lastPracticedAt: Date.now(),
+      lastAyahNumber: currentAyah > 0 ? currentAyah : 1,
     });
     if (rDelta || mDelta || sessionCounted.current) {
       const row = await db.activity.get(today);

@@ -4,7 +4,7 @@ import { SurahListItem } from "@/components/common/SurahListItem";
 
 export default function SurahsPage() {
   return (
-    <div className="max-w-2xl mx-auto space-y-5 pb-12">
+    <div className="max-w-2xl mx-auto space-y-4 sm:space-y-5 px-1 sm:px-0 pb-12">
       {/* Top Navigation Bar with Centered Title & Home Back Button */}
       <div className="relative flex items-center justify-center min-h-[40px]">
         <Link

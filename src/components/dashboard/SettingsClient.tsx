@@ -50,7 +50,7 @@ export function SettingsClient() {
     setFontSizeState(def);
   };
 
-  const defaultMushafSize = mounted ? getDefaultMushafFontSize() : 19;
+  const defaultMushafSize = mounted ? getDefaultMushafFontSize() : 22;
   const isDefaultSize = fontSize === defaultMushafSize;
 
   const radioCls =
@@ -168,11 +168,11 @@ export function SettingsClient() {
         </div>
 
         <p className="text-xs text-emerald-300/70 mb-3">
-          Recommended scale: <b>19px</b> matches the Taj Company 16-line Mushaf PDF layout.
+          Recommended scale: <b>22px</b> matches the Taj Company 16-line Mushaf PDF layout.
         </p>
 
         <div className="flex flex-wrap gap-2">
-          {[14, 16, 17, 18, 19, 20, 22].map((s) => (
+          {[16, 18, 20, 22, 24, 26].map((s) => (
             <button
               key={s}
               onClick={() => {

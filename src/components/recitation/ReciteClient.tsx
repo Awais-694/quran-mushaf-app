@@ -120,8 +120,8 @@ export function ReciteClient({
 
   const changeFontSize = (delta: number) => {
     const isMobile = typeof window !== "undefined" && window.innerWidth < 640;
-    const minF = 13;
-    const maxF = isMobile ? 22 : 28;
+    const minF = 14;
+    const maxF = isMobile ? 26 : 28;
     const next = Math.max(minF, Math.min(maxF, fontSize + delta));
     setFontSize(next);
     saveFontSize(next);
@@ -142,7 +142,7 @@ export function ReciteClient({
     setFontSize(def);
   };
 
-  const defaultMushafSize = mounted ? getDefaultMushafFontSize() : 19;
+  const defaultMushafSize = mounted ? getDefaultMushafFontSize() : 22;
   const isDefaultSize = fontSize === defaultMushafSize;
 
   const activeEngine = enginePref === "auto" ? (online ? "webspeech" : "whisper") : enginePref;
@@ -305,7 +305,7 @@ export function ReciteClient({
               A-
             </button>
             <span className="px-1.5 text-xs font-mono font-medium text-emerald-200 min-w-[34px] text-center select-none">
-              {mounted ? fontSize : 19}px
+              {mounted ? fontSize : 22}px
             </span>
             <button
               onClick={() => changeFontSize(1)}
@@ -379,7 +379,7 @@ export function ReciteClient({
         surahName={loaded.meta.arabicName}
         pageNumber={currentPage}
         manzil={`منزل ${toArabicDigits(firstAyahOnPage?.manzil ?? loaded.manzil)}`}
-        fontSize={mounted ? fontSize : 19}
+        fontSize={mounted ? fontSize : 22}
       >
         {isSurahStartPage && (
           <div className="relative text-center my-1.5 px-3 py-1 sm:py-1.5 rounded-sm bg-gradient-to-r from-[#ebd6a7]/40 via-[#f8eed7] to-[#ebd6a7]/40 border-[2px] border-double border-[#1b382b] shadow-sm">

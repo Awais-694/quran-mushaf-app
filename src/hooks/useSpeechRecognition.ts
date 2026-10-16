@@ -75,7 +75,10 @@ export function useSpeechRecognition(onResult: ResultHandler) {
             sessionFinalsAppended.current = finalsInSession;
           }
         } else {
-          interimText += r[0].transcript;
+          const part = r[0].transcript.trim();
+          if (part) {
+            interimText += (interimText ? " " : "") + part;
+          }
         }
       }
       emit(interimText.trim());

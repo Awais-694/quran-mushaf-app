@@ -80,14 +80,6 @@ export function DashboardClient() {
       
       {/* Centered Professional Header with Islamic Motif */}
       <div className="text-center pt-2 sm:pt-4 pb-1 space-y-3">
-        {/* Top Ornate Bismillah Capsule */}
-        <div className="inline-flex items-center gap-2.5 px-4 py-1.5 rounded-full bg-gradient-to-r from-emerald-950 via-[#071f13] to-emerald-950 border border-emerald-600/40 shadow-[0_2px_12px_rgba(16,185,129,0.15)]">
-          <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
-          <span className="font-arabic text-sm sm:text-base text-emerald-100 font-normal tracking-wide" dir="rtl">
-            بِسْمِ اللهِ الرَّحْمٰنِ الرَّحِيْمِ
-          </span>
-          <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
-        </div>
 
         {/* Assalam-o-Alaikum & Calligraphic Salam */}
         <div className="space-y-1">

@@ -38,6 +38,14 @@ export function useRecitation(tokens: WordToken[], initialRevealed: number = 0) 
     setDisplayRevealed(n);
   }, []);
 
+  const jumpToProgress = useCallback((n: number) => {
+    revealedRef.current = n;
+    setRevealed(n);
+    setDisplayRevealed(n);
+    processedFinalWords.current = 0;
+    carryRef.current = [];
+  }, []);
+
   const handleResult = useCallback(
     (finalText: string, interimText: string) => {
       const finalWords = wordsOf(finalText);
@@ -188,6 +196,7 @@ export function useRecitation(tokens: WordToken[], initialRevealed: number = 0) 
     handleResult,
     reset,
     setInitialProgress,
+    jumpToProgress,
     completed: expected.length > 0 && displayRevealed >= expected.length,
   };
 }

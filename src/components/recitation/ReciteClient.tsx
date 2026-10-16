@@ -13,7 +13,7 @@ import { toArabicDigits } from "@/components/mushaf/AyahMarker";
 import { ProgressBar } from "@/components/common/ProgressBar";
 import { FeedbackPanel } from "@/components/recitation/FeedbackPanel";
 import { MicButton } from "@/components/recitation/MicButton";
-import { playAyah } from "@/lib/audio/player";
+import { playAyah, stopAyah } from "@/lib/audio/player";
 import { db } from "@/lib/storage/db";
 import {
   getEnginePref,
@@ -91,8 +91,17 @@ export function ReciteClient({
     [loaded]
   );
 
-  const { revealed, displayRevealed, mistakes, lastHeard, handleResult, reset, setInitialProgress, completed } =
-    useRecitation(recTokens);
+  const {
+    revealed,
+    displayRevealed,
+    mistakes,
+    lastHeard,
+    handleResult,
+    reset,
+    setInitialProgress,
+    jumpToProgress,
+    completed,
+  } = useRecitation(recTokens);
 
   const ws = useSpeechRecognition(handleResult);
   const wh = useWhisper(handleResult);
@@ -318,6 +327,7 @@ export function ReciteClient({
     ws.resetFinals();
     wh.resetFinals();
     reset();
+    stopAudio();
     savedRevealed.current = 0;
     savedMistakes.current = 0;
     setResumedFromAyah(null);
@@ -346,13 +356,84 @@ export function ReciteClient({
     } catch {}
   };
 
-  const playCurrentAyah = () => {
-    if (!loaded) return;
-    const idx = Math.min(displayRevealed, total - 1);
-    const tok = loaded.tokens[idx];
-    const id = tok?.globalAyahId || loaded.ayahs[0]?.id;
-    if (id) playAyah(id);
+  const [isPlayingAudio, setIsPlayingAudio] = useState(false);
+  const activeAudioRef = useRef<HTMLAudioElement | null>(null);
+
+  const stopAudio = () => {
+    stopAyah();
+    if (activeAudioRef.current) {
+      activeAudioRef.current.pause();
+      activeAudioRef.current = null;
+    }
+    setIsPlayingAudio(false);
   };
+
+  const playAudioForAyah = (globalAyahId: number) => {
+    stopAudio();
+    try {
+      const audio = playAyah(globalAyahId);
+      activeAudioRef.current = audio;
+      setIsPlayingAudio(true);
+      audio.onended = () => {
+        setIsPlayingAudio(false);
+        activeAudioRef.current = null;
+      };
+      audio.onerror = () => {
+        setIsPlayingAudio(false);
+        activeAudioRef.current = null;
+      };
+      audio.onpause = () => {
+        setIsPlayingAudio(false);
+      };
+    } catch {
+      setIsPlayingAudio(false);
+    }
+  };
+
+  const jumpToToken = (idx: number, playAudio: boolean = true) => {
+    if (!loaded) return;
+    jumpToProgress(idx);
+    savedRevealed.current = idx;
+    ws.resetFinals();
+    wh.resetFinals();
+
+    const targetTok = loaded.tokens[idx];
+    if (targetTok) {
+      const pi = loaded.pages.indexOf(targetTok.page);
+      if (pi >= 0 && pi !== pageIdx) {
+        setPageIdx(pi);
+      }
+      const ayah = targetTok.ayahNumber || 1;
+      setResumedFromAyah(ayah);
+
+      if (playAudio) {
+        const audioId =
+          targetTok.globalAyahId ||
+          loaded.ayahs.find((a) => a.n === ayah)?.id ||
+          loaded.ayahs[0]?.id ||
+          1;
+        playAudioForAyah(audioId);
+      }
+    }
+  };
+
+  const togglePlayAudio = () => {
+    if (isPlayingAudio) {
+      stopAudio();
+    } else {
+      if (!loaded) return;
+      const idx = Math.min(displayRevealed, total - 1);
+      const tok = loaded.tokens[idx];
+      const id = tok?.globalAyahId || loaded.ayahs[0]?.id;
+      if (id) playAudioForAyah(id);
+    }
+  };
+
+  useEffect(() => {
+    return () => {
+      stopAudio();
+    };
+  }, []);
 
   if (loadErr) return <p className="text-center py-10 text-rose-300">Could not load this surah&apos;s data.</p>;
   if (!loaded) return <p className="text-center py-10 text-emerald-300/70">Loading the Mushaf…</p>;
@@ -455,6 +536,27 @@ export function ReciteClient({
             <span>Juz {firstAyahOnPage?.juz ?? loaded.juz}</span>
             <span className="text-emerald-800 select-none">•</span>
             <span>Page {currentPage} of {mushafMeta.totalPages}</span>
+            <span className="text-emerald-800 select-none">•</span>
+            <div className="inline-flex items-center gap-1.5 bg-[#0a1e14]/90 px-2 py-0.5 rounded-full border border-emerald-700/60 text-[11px] text-emerald-200 shadow-sm">
+              <span className="text-[10px] text-emerald-400/80 font-medium uppercase tracking-wide">Recite from:</span>
+              <select
+                value={loaded.tokens[Math.min(displayRevealed, total - 1)]?.ayahNumber || 1}
+                onChange={(e) => {
+                  const targetAyah = Number(e.target.value);
+                  const firstTokenIdx = loaded.tokens.findIndex((t) => t.ayahNumber === targetAyah);
+                  if (firstTokenIdx >= 0) {
+                    jumpToToken(firstTokenIdx, true);
+                  }
+                }}
+                className="bg-transparent text-emerald-100 font-bold focus:outline-none cursor-pointer"
+              >
+                {loaded.ayahs.map((a) => (
+                  <option key={a.n} value={a.n} className="bg-[#07160f] text-emerald-100">
+                    Ayah {a.n}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
         </div>
 
@@ -523,7 +625,10 @@ export function ReciteClient({
                 >
                   {words.map((t) => (
                     <span key={t.idx} className="inline-block transition-transform">
-                      <MushafWord token={{ display: t.display, normalized: "", state: stateOf(t.idx), ayahNumber: 0, page: t.page }} />
+                      <MushafWord
+                        token={{ display: t.display, normalized: "", state: stateOf(t.idx), ayahNumber: 0, page: t.page }}
+                        onClick={() => jumpToToken(t.idx, true)}
+                      />
                     </span>
                   ))}
                 </div>
@@ -560,6 +665,7 @@ export function ReciteClient({
                       ayahNumber: g.word.ayahNumber,
                       page: g.word.page,
                     }}
+                    onClick={() => jumpToToken(g.word.idx, true)}
                   />
                   {g.marker && (
                     <MushafWord
@@ -569,6 +675,9 @@ export function ReciteClient({
                         state: stateOf(g.marker.idx),
                         ayahNumber: g.marker.ayahNumber,
                         page: g.marker.page,
+                      }}
+                      onClick={() => {
+                        if (g.marker) jumpToToken(g.marker.idx, true);
                       }}
                     />
                   )}
@@ -640,14 +749,25 @@ export function ReciteClient({
 
           {/* Audio Reference Player */}
           <button
-            onClick={playCurrentAyah}
-            title="Listen to reference recitation"
-            aria-label="Listen to reference recitation"
-            className="w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center rounded-full text-emerald-200 bg-emerald-950/80 hover:bg-emerald-900 border border-emerald-700/60 hover:border-emerald-500/80 transition-all active:scale-95 shadow-sm cursor-pointer"
+            onClick={togglePlayAudio}
+            title={isPlayingAudio ? "Stop Audio" : "Listen to reference recitation"}
+            aria-label={isPlayingAudio ? "Stop Audio" : "Listen to reference recitation"}
+            className={`w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center rounded-full transition-all active:scale-95 shadow-sm cursor-pointer ${
+              isPlayingAudio
+                ? "bg-emerald-500 text-white shadow-[0_0_18px_rgba(16,185,129,0.85)] border border-emerald-300 ring-2 ring-emerald-400/80 animate-pulse"
+                : "text-emerald-200 bg-emerald-950/80 hover:bg-emerald-900 border border-emerald-700/60 hover:border-emerald-500/80"
+            }`}
           >
-            <svg className="w-4 h-4 text-emerald-300" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
-            </svg>
+            {isPlayingAudio ? (
+              <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white" fill="currentColor" viewBox="0 0 24 24">
+                <rect x="6" y="5" width="4" height="14" rx="1.5" />
+                <rect x="14" y="5" width="4" height="14" rx="1.5" />
+              </svg>
+            ) : (
+              <svg className="w-4 h-4 text-emerald-300" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
+              </svg>
+            )}
           </button>
 
           {/* Reset Progress Button */}

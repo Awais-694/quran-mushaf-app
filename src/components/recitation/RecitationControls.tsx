@@ -16,7 +16,7 @@ export function RecitationControls({
     <div className="flex flex-wrap gap-3 justify-center mt-4">
       <MicButton listening={listening} onClick={onToggleMic} />
       <button onClick={onPlayAyah} className="px-5 py-3 rounded-xl bg-emerald-900 border border-emerald-700">
-        🔊 Ayat Sunein
+        🔊 Listen to Ayah
       </button>
       <button onClick={onReset} className="px-5 py-3 rounded-xl bg-emerald-900 border border-emerald-700">
         ↺ Reset

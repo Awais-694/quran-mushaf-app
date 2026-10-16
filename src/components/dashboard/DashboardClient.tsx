@@ -142,7 +142,7 @@ export function DashboardClient() {
                 <div className="mt-1.5 space-y-0.5">
                   <div className="flex items-center gap-2 flex-wrap text-xs sm:text-sm font-semibold text-emerald-100">
                     <span className="px-2 py-0.5 rounded-md bg-emerald-800/60 border border-emerald-600/50 text-white text-xs">
-                      {lastAyah ? `Ayat ${lastAyah}` : "Ayat 1"}
+                      {lastAyah ? `Ayah ${lastAyah}` : "Ayah 1"}
                     </span>
                     <span className="text-emerald-300/70 font-normal text-xs">
                       {stats.lastActive.revealedWords} / {stats.lastActive.totalWords} words revealed
@@ -151,7 +151,7 @@ export function DashboardClient() {
                   
                   {/* Prompt question asked explicitly */}
                   <p className="text-xs text-amber-200/90 font-medium pt-1">
-                    Kya aap yahan se apni tilawat jari rakhna chahein gay?
+                    Would you like to resume reciting from where you left off?
                   </p>
                 </div>
               </div>
@@ -170,7 +170,7 @@ export function DashboardClient() {
               <svg className="w-4 h-4 text-white fill-current" viewBox="0 0 24 24">
                 <path d="M8 5v14l11-7z" />
               </svg>
-              <span>Jari Rakhein (Resume)</span>
+              <span>Resume Recitation</span>
             </Link>
           </div>
         </div>
@@ -185,7 +185,7 @@ export function DashboardClient() {
           <StatCard
             label="Daily Streak"
             value={stats ? `${stats.streak} ${stats.streak === 1 ? "day" : "days"}` : "…"}
-            sublabel="Continuous tilawat"
+            sublabel="Daily recitation habit"
           />
           <StatCard
             label="Accuracy"
@@ -231,7 +231,7 @@ export function DashboardClient() {
                         {meta?.name}
                       </div>
                       <div className="text-[11px] text-emerald-300/60">
-                        {p.lastAyahNumber ? `Ayat ${p.lastAyahNumber} • ` : ""}{pct}% revealed
+                        {p.lastAyahNumber ? `Ayah ${p.lastAyahNumber} • ` : ""}{pct}% revealed
                       </div>
                     </div>
                   </div>

@@ -6,6 +6,19 @@ import { SURAHS_META } from "@/lib/quran/data";
 import { SurahListItem } from "@/components/common/SurahListItem";
 import { normalizeArabic } from "@/lib/quran/normalize";
 
+function normalizeEnglishSearch(str: string): string {
+  return str
+    .toLowerCase()
+    .replace(/^surah\s*/i, "")
+    // Strip Arabic articles: "al-", "an-", "ar-", "as-", "ash-", "at-", "az-", "ad-", "al ", "an ", etc.
+    .replace(/^(al|an|ar|as|ash|at|az|ad|adh|aj|akh|al-|an-|ar-|as-|ash-|at-|az-|ad-)\s*/i, "")
+    .replace(/[^a-z0-9]/g, "")
+    .replace(/aa/g, "a")
+    .replace(/ee/g, "i")
+    .replace(/oo/g, "u")
+    .replace(/ii/g, "i");
+}
+
 export default function SurahsPage() {
   const [query, setQuery] = useState("");
 
@@ -15,6 +28,7 @@ export default function SurahsPage() {
 
     const isNum = /^\d+$/.test(q);
     const normQ = normalizeArabic(q);
+    const normSearch = normalizeEnglishSearch(q);
 
     return SURAHS_META.filter((m) => {
       // 1. Check number (exact or prefix, e.g. "1" or "114")
@@ -24,14 +38,21 @@ export default function SurahsPage() {
         }
       }
 
-      // 2. Check transliterated English name (e.g. "Baqara", "Yasin", "Fatiha")
+      // 2. Check transliterated English name with smart article & vowel normalization
+      // e.g. "al nas" matches "An-Naas", "baqarah" matches "Al-Baqara", "fatiha" matches "Al-Faatiha"
       const cleanName = m.name.toLowerCase().replace(/[^a-z0-9]/g, "");
       const cleanQ = q.replace(/[^a-z0-9]/g, "");
-      if (m.name.toLowerCase().includes(q) || (cleanQ && cleanName.includes(cleanQ))) {
+      const normName = normalizeEnglishSearch(m.name);
+
+      if (
+        m.name.toLowerCase().includes(q) ||
+        (cleanQ && cleanName.includes(cleanQ)) ||
+        (normSearch && normName.includes(normSearch))
+      ) {
         return true;
       }
 
-      // 3. Check English translation (e.g. "The Cow", "The Opening")
+      // 3. Check English translation (e.g. "The Cow", "Mankind", "The Opening")
       if (m.translation.toLowerCase().includes(q)) {
         return true;
       }
@@ -78,7 +99,7 @@ export default function SurahsPage() {
           type="text"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="Surah name, number, ya tarjuma search karein..."
+          placeholder="Search by Surah name, number, or translation..."
           autoComplete="off"
           autoCorrect="off"
           spellCheck="false"
@@ -115,10 +136,10 @@ export default function SurahsPage() {
             </div>
             <div className="space-y-1">
               <h3 className="text-sm sm:text-base font-semibold text-emerald-100">
-                Koi Surah nahi mili
+                No Surah Found
               </h3>
               <p className="text-xs text-emerald-300/60">
-                "{query}" se match karti koi Surah dastiyab nahi hai.
+                No Surah matching "{query}" was found.
               </p>
             </div>
             <button

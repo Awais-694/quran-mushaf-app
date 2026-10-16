@@ -7,14 +7,13 @@ export function BismillahSplash() {
   const [fading, setFading] = useState(false);
 
   useEffect(() => {
-    // Only show on fresh page load/open
     const timer = setTimeout(() => {
       setFading(true);
       const hideTimer = setTimeout(() => {
         setVisible(false);
-      }, 700); // match transition duration
+      }, 700);
       return () => clearTimeout(hideTimer);
-    }, 2200);
+    }, 2400);
 
     return () => clearTimeout(timer);
   }, []);
@@ -29,20 +28,20 @@ export function BismillahSplash() {
   return (
     <div
       onClick={handleDismiss}
-      className={`fixed inset-0 z-50 flex flex-col items-center justify-center p-6 bg-[#040d07] select-none transition-all duration-700 cursor-pointer ${
+      className={`fixed inset-0 z-50 flex flex-col items-center justify-center p-5 sm:p-6 bg-[#040d07] select-none transition-all duration-700 cursor-pointer ${
         fading ? "opacity-0 scale-95 pointer-events-none" : "opacity-100 scale-100"
       }`}
       aria-label="Opening Bismillah Screen"
       role="banner"
     >
-      {/* Background Ambient Glow & Islamic Ornament */}
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-emerald-900/30 via-[#040d07]/90 to-[#020704] pointer-events-none" />
+      {/* Background Ambient Glow & Islamic Vignette */}
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-emerald-900/35 via-[#040d07]/90 to-[#020704] pointer-events-none" />
       
       {/* Subtle Golden Decorative Frame */}
-      <div className="relative max-w-md w-full mx-auto flex flex-col items-center text-center px-4 py-8 rounded-3xl border border-emerald-500/20 bg-gradient-to-b from-emerald-950/40 via-[#06140b]/70 to-[#030a06]/90 shadow-[0_0_50px_rgba(5,150,105,0.15)] backdrop-blur-md">
+      <div className="relative max-w-lg w-full mx-auto flex flex-col items-center text-center px-4 sm:px-6 py-8 sm:py-10 rounded-3xl border border-emerald-500/25 bg-gradient-to-b from-emerald-950/50 via-[#06160c]/80 to-[#030a06]/95 shadow-[0_0_60px_rgba(5,150,105,0.2)] backdrop-blur-md">
         
         {/* Top Islamic Geometric Icon */}
-        <div className="w-12 h-12 mb-5 rounded-2xl bg-gradient-to-br from-emerald-600/30 to-emerald-950 border border-emerald-400/40 flex items-center justify-center shadow-[0_0_20px_rgba(16,185,129,0.3)]">
+        <div className="w-12 h-12 mb-4 rounded-2xl bg-gradient-to-br from-emerald-600/30 to-emerald-950 border border-emerald-400/40 flex items-center justify-center shadow-[0_0_25px_rgba(16,185,129,0.35)]">
           <svg
             className="w-6 h-6 text-emerald-300"
             viewBox="0 0 24 24"
@@ -58,36 +57,36 @@ export function BismillahSplash() {
           </svg>
         </div>
 
-        {/* Bismillah Calligraphy */}
-        <div className="relative my-2 px-2">
+        {/* Bismillah Calligraphy (Authentic classical font) */}
+        <div className="relative my-2 sm:my-3 px-2">
           <h1
             dir="rtl"
             lang="ar"
-            className="font-bismillah text-3xl sm:text-4xl md:text-5xl font-bold leading-relaxed tracking-wide text-transparent bg-clip-text bg-gradient-to-r from-emerald-100 via-amber-200 to-emerald-200 drop-shadow-[0_2px_12px_rgba(251,191,36,0.25)]"
+            className="font-arabic text-3xl sm:text-4xl md:text-5xl font-normal leading-relaxed text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-emerald-100 to-amber-200 drop-shadow-[0_4px_16px_rgba(251,191,36,0.3)] tracking-wide"
           >
-            بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ
+            بِسْمِ اللهِ الرَّحْمٰنِ الرَّحِيْمِ
           </h1>
         </div>
 
         {/* Translation in Urdu and English */}
-        <div className="mt-4 space-y-1.5">
+        <div className="mt-3 space-y-2 max-w-md mx-auto w-full">
           <p
             dir="rtl"
-            className="text-emerald-200/90 text-sm sm:text-base font-arabic leading-relaxed"
+            className="font-urdu text-sm sm:text-base text-emerald-100/90 leading-[2.2] tracking-normal px-2"
           >
             شروع اللہ کے نام سے جو بڑا مہربان نہایت رحم والا ہے
           </p>
-          <p className="text-emerald-400/60 text-xs sm:text-xs tracking-wider font-medium">
+          <p className="text-emerald-300/70 text-xs sm:text-xs tracking-wider font-medium">
             In the name of Allah, the Most Gracious, the Most Merciful
           </p>
         </div>
 
         {/* Elegant Animated Progress Line */}
-        <div className="w-28 h-1 bg-emerald-950/80 rounded-full mt-6 overflow-hidden border border-emerald-800/40">
+        <div className="w-28 h-1 bg-emerald-950/80 rounded-full mt-6 sm:mt-8 overflow-hidden border border-emerald-800/40">
           <div className="h-full bg-gradient-to-r from-emerald-500 via-amber-400 to-emerald-400 rounded-full animate-[pulse_1.5s_ease-in-out_infinite]" />
         </div>
 
-        <span className="text-[10px] text-emerald-400/40 mt-3 uppercase tracking-widest font-mono">
+        <span className="text-[10px] text-emerald-400/40 mt-3.5 uppercase tracking-widest font-mono">
           Tap anywhere to continue
         </span>
       </div>

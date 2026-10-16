@@ -79,24 +79,27 @@ export function DashboardClient() {
     <div className="max-w-2xl mx-auto space-y-5 sm:space-y-6 px-2 sm:px-0 pb-16">
       
       {/* Centered Professional Header with Islamic Motif */}
-      <div className="text-center pt-2 sm:pt-4 pb-1 space-y-2.5">
-        <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-[#07180f] border border-emerald-700/40 shadow-inner">
-          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-          <span className="font-bismillah text-xs sm:text-sm text-emerald-300 font-medium">
-            بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ
+      <div className="text-center pt-2 sm:pt-4 pb-1 space-y-3">
+        {/* Top Ornate Bismillah Capsule */}
+        <div className="inline-flex items-center gap-2.5 px-4 py-1.5 rounded-full bg-gradient-to-r from-emerald-950 via-[#071f13] to-emerald-950 border border-emerald-600/40 shadow-[0_2px_12px_rgba(16,185,129,0.15)]">
+          <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
+          <span className="font-arabic text-sm sm:text-base text-emerald-100 font-normal tracking-wide" dir="rtl">
+            بِسْمِ اللهِ الرَّحْمٰنِ الرَّحِيْمِ
           </span>
+          <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
         </div>
 
+        {/* Assalam-o-Alaikum & Calligraphic Salam */}
         <div className="space-y-1">
-          <h1 className="text-2xl sm:text-3xl md:text-4xl font-extrabold text-white tracking-tight">
+          <h1 className="font-display text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-emerald-100 via-amber-100 to-emerald-200 drop-shadow-[0_2px_10px_rgba(0,0,0,0.5)]">
             Assalam-o-Alaikum
           </h1>
-          <p className="font-arabic text-emerald-300/90 text-sm sm:text-base tracking-normal" dir="rtl">
+          <p className="font-arabic text-emerald-200 text-lg sm:text-2xl font-normal leading-relaxed tracking-wide" dir="rtl">
             اَلسَّلَامُ عَلَيْكُمْ وَرَحْمَةُ اللهِ وَبَرَكَاتُهُ
           </p>
         </div>
 
-        <p className="text-xs sm:text-sm text-emerald-200/75 max-w-md mx-auto leading-relaxed px-2">
+        <p className="text-xs sm:text-sm text-emerald-200/75 max-w-md mx-auto leading-relaxed px-2 font-normal">
           Recite aloud with instant AI speech recognition on the authentic 16-line Taj Company Mushaf.
         </p>
       </div>

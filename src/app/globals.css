@@ -1,0 +1,26 @@
+@import url('https://fonts.googleapis.com/css2?family=Amiri+Quran&family=Aref+Ruqaa:wght@700&family=Noto+Naskh+Arabic:wght@600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* IndoPak Nastaleeq — the actual font of the Taj Company 16-line mushaf
+   (QUL font resource, free). Falls back to Amiri Quran if unavailable. */
+@font-face {
+  font-family: "IndoPak Nastaleeq";
+  src: url("/fonts/indopak-nastaleeq.ttf") format("truetype");
+  font-display: swap;
+}
+
+body {
+  @apply bg-emeraldDeep text-emerald-50 min-h-screen;
+}
+
+/* Light theme — mushaf cards cream hi rehte hain, background halka ho jata hai */
+:root[data-theme="light"] body {
+  background: #f0ebdb;
+  color: #17301f;
+}
+:root[data-theme="light"] nav {
+  border-color: #d8d0b8;
+}

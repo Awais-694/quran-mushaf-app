@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html><head><meta charset="utf-8"><title>Whisper worker test</title></head>
+<body>
+<h3>Whisper worker test (mirrors useWhisper.ts exactly)</h3>
+<pre id="log">starting...\n</pre>
+<script type="module">
+const logEl = document.getElementById('log');
+const log = (m) => { logEl.textContent += m + "\n"; console.log("[wtest]", m); };
+
+async function decodeTo16k(url) {
+  const buf = await (await fetch(url)).arrayBuffer();
+  const ctx = new OfflineAudioContext(1, 16000 * 60, 16000);
+  // decode with a temp context like the app does (AudioContext -> decodeAudioData)
+  const AC = window.AudioContext || window.webkitAudioContext;
+  const actx = new AC();
+  const decoded = await actx.decodeAudioData(buf);
+  await actx.close();
+  const len = Math.max(1, Math.ceil(decoded.duration * 16000));
+  const off = new OfflineAudioContext(1, len, 16000);
+  const src = off.createBufferSource();
+  src.buffer = decoded;
+  src.connect(off.destination);
+  src.start();
+  const rendered = await off.startRendering();
+  return rendered.getChannelData(0);
+}
+
+const w = new Worker("/whisper-worker.js", { type: "module" });
+let readyResolve;
+const readyP = new Promise((r) => (readyResolve = r));
+const results = [];
+w.onmessage = (e) => {
+  const m = e.data;
+  if (m.type === "progress") log("download progress: " + Math.round(m.progress) + "%");
+  else if (m.type === "ready") { log("MODEL READY"); readyResolve(); }
+  else if (m.type === "result") { log("RESULT text: " + JSON.stringify(m.text)); results.push(m.text); window.__done = true; }
+  else if (m.type === "error") { log("ERROR: " + m.message); window.__done = true; }
+};
+w.onerror = (e) => { log("WORKER ERROR: " + e.message); window.__done = true; };
+
+const t0 = Date.now();
+w.postMessage({ type: "load" });
+await readyP;
+log("load took " + Math.round((Date.now() - t0) / 1000) + "s");
+
+const audio = await decodeTo16k("/test-ayah.mp3");
+log("audio decoded: " + audio.length + " samples (" + (audio.length / 16000).toFixed(1) + "s)");
+// split like the app does: 5-second chunks; send the first chunk
+const chunk = audio.slice(0, 5 * 16000);
+const t1 = Date.now();
+w.postMessage({ type: "transcribe", audio: chunk }, [chunk.buffer]);
+log("transcribe posted, waiting...");
+const t2 = Date.now();
+// result arrives via onmessage; expose timing
+const iv = setInterval(() => {
+  if (window.__done) { log("transcribe took " + Math.round((Date.now() - t2) / 1000) + "s"); clearInterval(iv); }
+}, 500);
+</script>
+</body></html>

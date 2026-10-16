@@ -37,11 +37,44 @@ export function DashboardClient() {
       const progress = await db.progress.toArray();
       const totalWords = activity.reduce((s, a) => s + a.wordsRevealed, 0);
       const totalMistakes = activity.reduce((s, a) => s + a.mistakes, 0);
-      const sortedInProgress = progress
-        .filter((p) => p.revealedWords > 0 && !p.completed)
-        .sort((a, b) => b.lastPracticedAt - a.lastPracticedAt);
+      // 1. Look for in-progress surahs in DB
+      let active = progress
+        .filter((p) => !p.completed)
+        .sort((a, b) => (b.lastPracticedAt || 0) - (a.lastPracticedAt || 0))[0] ?? null;
 
-      const active = sortedInProgress[0] ?? null;
+      // 2. Check localStorage for the latest recitation (survives app closure / immediate navigation)
+      try {
+        const rawLast = localStorage.getItem("tilawat_last_recitation");
+        if (rawLast) {
+          const parsed = JSON.parse(rawLast);
+          if (parsed && typeof parsed.surahNumber === "number") {
+            const lsTime = parsed.timestamp || 0;
+            const dbTime = active?.lastPracticedAt || 0;
+            if (!active || lsTime >= dbTime) {
+              active = {
+                surahNumber: parsed.surahNumber,
+                revealedWords: parsed.revealedWords || 0,
+                totalWords: parsed.totalWords || 0,
+                completed: false,
+                lastPracticedAt: lsTime || Date.now(),
+                lastAyahNumber: parsed.lastAyahNumber || 1,
+              };
+            }
+          }
+        }
+      } catch {}
+
+      // If user hasn't opened any surah yet, default to Surah Al-Fatihah
+      if (!active) {
+        active = {
+          surahNumber: 1,
+          revealedWords: 0,
+          totalWords: 29,
+          completed: false,
+          lastPracticedAt: Date.now(),
+          lastAyahNumber: 1,
+        };
+      }
 
       setStats({
         streak: calcStreak(activity.filter((a) => a.wordsRevealed > 0).map((a) => a.date)),
@@ -49,7 +82,7 @@ export function DashboardClient() {
           totalWords + totalMistakes > 0
             ? Math.round((totalWords / (totalWords + totalMistakes)) * 100)
             : null,
-        inProgress: sortedInProgress.slice(0, 4),
+        inProgress: progress.filter((p) => p.revealedWords > 0 && !p.completed).slice(0, 4),
         completedCount: progress.filter((p) => p.completed).length,
         lastActive: active,
       });
@@ -57,13 +90,15 @@ export function DashboardClient() {
       if (active) {
         if (active.lastAyahNumber) {
           setLastAyah(active.lastAyahNumber);
-        } else {
+        } else if (active.revealedWords > 0) {
           // Resolve ayah dynamically from tokens if older record
           const s = await loadSurah(active.surahNumber);
           if (s) {
             const idx = Math.max(0, Math.min(active.revealedWords - 1, s.tokens.length - 1));
             setLastAyah(s.tokens[idx]?.ayahNumber || 1);
           }
+        } else {
+          setLastAyah(1);
         }
       }
     })();
@@ -111,11 +146,11 @@ export function DashboardClient() {
                   <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-amber-400"></span>
                 </span>
                 <span className="text-[11px] sm:text-xs font-bold uppercase tracking-wider text-amber-300">
-                  Resume Tilawat
+                  {stats.lastActive.revealedWords > 0 ? "Resume Tilawat" : "Continue Tilawat"}
                 </span>
               </div>
               <span className="text-[11px] sm:text-xs font-semibold text-emerald-300/80 bg-emerald-950/70 border border-emerald-800/60 px-2 py-0.5 rounded-md">
-                {lastActivePct}% Completed
+                {stats.lastActive.revealedWords > 0 ? `${lastActivePct}% Completed` : "Ready"}
               </span>
             </div>
 
@@ -137,13 +172,17 @@ export function DashboardClient() {
                       {lastAyah ? `Ayah ${lastAyah}` : "Ayah 1"}
                     </span>
                     <span className="text-emerald-300/70 font-normal text-xs">
-                      {stats.lastActive.revealedWords} / {stats.lastActive.totalWords} words revealed
+                      {stats.lastActive.revealedWords > 0
+                        ? `${stats.lastActive.revealedWords} / ${stats.lastActive.totalWords} words revealed`
+                        : "Ready to recite from Ayah 1"}
                     </span>
                   </div>
                   
-                  {/* Prompt question asked explicitly */}
+                  {/* Prompt question */}
                   <p className="text-xs text-amber-200/90 font-medium pt-1">
-                    Would you like to resume reciting from where you left off?
+                    {stats.lastActive.revealedWords > 0
+                      ? "Would you like to resume reciting from where you left off?"
+                      : "Would you like to continue reciting this Surah?"}
                   </p>
                 </div>
               </div>
@@ -162,7 +201,9 @@ export function DashboardClient() {
               <svg className="w-4 h-4 text-white fill-current" viewBox="0 0 24 24">
                 <path d="M8 5v14l11-7z" />
               </svg>
-              <span>Resume Recitation</span>
+              <span>
+                {stats.lastActive.revealedWords > 0 ? "Resume Recitation" : "Start Recitation"}
+              </span>
             </Link>
           </div>
         </div>

@@ -91,7 +91,7 @@ export function ReciteClient({
     [loaded]
   );
 
-  const { revealed, displayRevealed, mistakes, lastHeard, handleResult, reset, completed } =
+  const { revealed, displayRevealed, mistakes, lastHeard, handleResult, reset, setInitialProgress, completed } =
     useRecitation(recTokens);
 
   const ws = useSpeechRecognition(handleResult);
@@ -148,10 +148,46 @@ export function ReciteClient({
   const activeEngine = enginePref === "auto" ? (online ? "webspeech" : "whisper") : enginePref;
   const listening = activeEngine === "webspeech" ? ws.listening : wh.listening;
 
-  // ---- progress saving (IndexedDB) ----
+  // ---- progress saving & state restoration ----
   const savedRevealed = useRef(0);
   const savedMistakes = useRef(0);
   const sessionCounted = useRef(false);
+  const [resumedFromAyah, setResumedFromAyah] = useState<number | null>(null);
+  const initialRestoreDone = useRef(false);
+
+  // Restore previous progress on mount if user had recited this surah before
+  useEffect(() => {
+    if (!loaded || initialRestoreDone.current) return;
+    initialRestoreDone.current = true;
+
+    (async () => {
+      const ex = await db.progress.get(surahNumber);
+      const prevRev = ex?.revealedWords ?? 0;
+      const lastAyah = ex?.lastAyahNumber || 1;
+
+      // Always update localStorage immediately so Dashboard knows this surah was opened
+      try {
+        localStorage.setItem(
+          "tilawat_last_recitation",
+          JSON.stringify({
+            surahNumber,
+            revealedWords: prevRev,
+            totalWords: loaded.tokens.length,
+            lastAyahNumber: lastAyah,
+            timestamp: Date.now(),
+          })
+        );
+      } catch {}
+
+      if (prevRev > 0 && prevRev < loaded.tokens.length) {
+        setInitialProgress(prevRev);
+        savedRevealed.current = prevRev;
+        const lastWordIdx = Math.max(0, Math.min(prevRev - 1, loaded.tokens.length - 1));
+        const resumedAyah = loaded.tokens[lastWordIdx]?.ayahNumber || lastAyah;
+        setResumedFromAyah(resumedAyah);
+      }
+    })();
+  }, [loaded, surahNumber, setInitialProgress]);
 
   const saveProgress = async () => {
     if (!loaded) return;
@@ -184,11 +220,49 @@ export function ReciteClient({
   };
   const saveRef = useRef(saveProgress);
   saveRef.current = saveProgress;
+
+  // Sync to localStorage synchronously whenever revealed updates
+  useEffect(() => {
+    if (!loaded) return;
+    const lastWordIdx = Math.max(0, Math.min(revealed - 1, loaded.tokens.length - 1));
+    const currentAyah = loaded.tokens[lastWordIdx]?.ayahNumber || 1;
+    try {
+      localStorage.setItem(
+        "tilawat_last_recitation",
+        JSON.stringify({
+          surahNumber,
+          revealedWords: revealed,
+          totalWords: loaded.tokens.length,
+          lastAyahNumber: currentAyah,
+          timestamp: Date.now(),
+        })
+      );
+    } catch {}
+  }, [revealed, loaded, surahNumber]);
+
   useEffect(() => {
     if (!loaded || (revealed === 0 && mistakes === 0)) return;
     const t = setTimeout(() => void saveRef.current(), 900);
     return () => clearTimeout(t);
   }, [revealed, mistakes, loaded]);
+
+  // Flush progress immediately if user navigates away or closes tab/app
+  useEffect(() => {
+    const handleFlush = () => {
+      void saveRef.current();
+    };
+    window.addEventListener("beforeunload", handleFlush);
+    const handleVis = () => {
+      if (document.visibilityState === "hidden") {
+        void saveRef.current();
+      }
+    };
+    document.addEventListener("visibilitychange", handleVis);
+    return () => {
+      window.removeEventListener("beforeunload", handleFlush);
+      document.removeEventListener("visibilitychange", handleVis);
+    };
+  }, []);
 
   // ---- galat lafz par red flash + kamzor lafz record ----
   const [flash, setFlash] = useState(false);
@@ -238,7 +312,7 @@ export function ReciteClient({
     }
   };
 
-  const resetAll = () => {
+  const resetAll = async () => {
     ws.stop();
     wh.stop();
     ws.resetFinals();
@@ -246,7 +320,30 @@ export function ReciteClient({
     reset();
     savedRevealed.current = 0;
     savedMistakes.current = 0;
+    setResumedFromAyah(null);
     setPageIdx(0);
+
+    // Reset progress in DB and localStorage so user can recite fresh
+    try {
+      await db.progress.put({
+        surahNumber,
+        revealedWords: 0,
+        totalWords: loaded?.tokens.length ?? 0,
+        completed: false,
+        lastPracticedAt: Date.now(),
+        lastAyahNumber: 1,
+      });
+      localStorage.setItem(
+        "tilawat_last_recitation",
+        JSON.stringify({
+          surahNumber,
+          revealedWords: 0,
+          totalWords: loaded?.tokens.length ?? 0,
+          lastAyahNumber: 1,
+          timestamp: Date.now(),
+        })
+      );
+    } catch {}
   };
 
   const playCurrentAyah = () => {
@@ -373,6 +470,28 @@ export function ReciteClient({
         </div>
       </div>
 
+      {/* Resumed Progress Banner */}
+      {resumedFromAyah && revealed > 0 && (
+        <div className="flex items-center justify-between gap-3 px-3.5 py-2 rounded-xl bg-gradient-to-r from-emerald-950/90 via-[#071a11]/90 to-emerald-950/90 border border-emerald-600/40 text-xs text-emerald-200 shadow-md">
+          <div className="flex items-center gap-2">
+            <span className="flex h-2 w-2 relative">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-400"></span>
+            </span>
+            <span>
+              Resumed recitation from <strong className="text-white">Ayah {resumedFromAyah}</strong>
+            </span>
+          </div>
+          <button
+            onClick={() => {
+              void resetAll();
+            }}
+            className="text-amber-300 hover:text-amber-200 underline font-semibold text-[11px] cursor-pointer"
+          >
+            Start Over
+          </button>
+        </div>
+      )}
 
       {/* Real Mushaf 16-Line Page Container */}
       <MushafPage

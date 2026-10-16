@@ -9,7 +9,7 @@ import type { WordToken } from "@/types/quran";
 // Final results -> permanent reveal (ya galti record)
 // Interim results -> live preview (galti par reveal nahi)
 
-export function useRecitation(tokens: WordToken[]) {
+export function useRecitation(tokens: WordToken[], initialRevealed: number = 0) {
   const expected = useMemo(() => tokens.map((t) => t.normalized), [tokens]);
   const expectedForms = useMemo(() => tokens.map((t) => t.forms ?? []), [tokens]);
   // Basmala (ayahNumber 0) ke lafz shuru me hain; user aksar ayat 1 se shuru
@@ -19,8 +19,8 @@ export function useRecitation(tokens: WordToken[]) {
     while (n < tokens.length && tokens[n].ayahNumber === 0) n++;
     return n;
   }, [tokens]);
-  const [revealed, setRevealed] = useState(0);
-  const [displayRevealed, setDisplayRevealed] = useState(0);
+  const [revealed, setRevealed] = useState(initialRevealed);
+  const [displayRevealed, setDisplayRevealed] = useState(initialRevealed);
   const [wrongWords, setWrongWords] = useState<string[]>([]);
   const [lastHeard, setLastHeard] = useState("");
   const processedFinalWords = useRef(0);
@@ -30,7 +30,13 @@ export function useRecitation(tokens: WordToken[]) {
   const carryRef = useRef<string[]>([]);
   // revealed ka ref mirror — tez peeche aane wale results purani closure se
   // ghalat position par match na karein ya progress overwrite na karein.
-  const revealedRef = useRef(0);
+  const revealedRef = useRef(initialRevealed);
+
+  const setInitialProgress = useCallback((n: number) => {
+    revealedRef.current = n;
+    setRevealed(n);
+    setDisplayRevealed(n);
+  }, []);
 
   const handleResult = useCallback(
     (finalText: string, interimText: string) => {
@@ -181,6 +187,7 @@ export function useRecitation(tokens: WordToken[]) {
     lastHeard,
     handleResult,
     reset,
+    setInitialProgress,
     completed: expected.length > 0 && displayRevealed >= expected.length,
   };
 }

@@ -9,10 +9,7 @@ import {
   setFontSize,
   resetFontSize,
   getDefaultMushafFontSize,
-  getTheme,
-  setTheme,
   type EnginePref,
-  type ThemePref,
 } from "@/lib/settings";
 import { useWhisper } from "@/hooks/useWhisper";
 
@@ -20,7 +17,6 @@ export function SettingsClient() {
   const router = useRouter();
   const [engine, setEngine] = useState<EnginePref>("auto");
   const [fontSize, setFontSizeState] = useState(24);
-  const [theme, setThemeState] = useState<ThemePref>("dark");
   const [mounted, setMounted] = useState(false);
   const whisper = useWhisper(() => {});
 
@@ -28,7 +24,6 @@ export function SettingsClient() {
     setMounted(true);
     setEngine(getEnginePref());
     setFontSizeState(getFontSize());
-    setThemeState(getTheme());
   }, []);
 
   const handleBack = () => {
@@ -37,12 +32,6 @@ export function SettingsClient() {
     } else {
       router.push("/surahs");
     }
-  };
-
-  const applyTheme = (t: ThemePref) => {
-    setThemeState(t);
-    setTheme(t);
-    document.documentElement.dataset.theme = t;
   };
 
   const handleResetFont = () => {
@@ -258,18 +247,6 @@ export function SettingsClient() {
         </div>
       </div>
 
-      {/* Theme */}
-      <div className="bg-[#0c1c14]/90 border border-emerald-900/60 rounded-2xl p-4 sm:p-5 shadow-lg backdrop-blur-sm">
-        <h2 className="text-base font-semibold text-emerald-100 mb-2">
-          Theme
-        </h2>
-        <p className="text-xs text-emerald-300/70 mb-3">
-          Optimized for comfortable reading and focused Quran recitation.
-        </p>
-        <div className="inline-flex items-center px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold bg-emerald-800/80 border border-emerald-600/60 text-white shadow-sm select-none">
-          Dark Mode
-        </div>
-      </div>
     </div>
   );
 }

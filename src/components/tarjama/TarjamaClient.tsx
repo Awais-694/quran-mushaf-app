@@ -156,12 +156,25 @@ export function TarjamaClient() {
               target="_blank"
               rel="noopener noreferrer"
               className="px-2.5 py-1 rounded-lg bg-[#07170f] hover:bg-emerald-900/60 border border-emerald-800/70 text-emerald-200 text-xs font-medium flex items-center gap-1 transition-all active:scale-95 cursor-pointer"
-              title="Open full PDF in browser tab or download"
+              title="Open full PDF in browser tab"
             >
               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" />
               </svg>
               <span>Open Tab</span>
+            </a>
+
+            {/* Download for Offline Button */}
+            <a
+              href={activeJild.fileName}
+              download={activeJild.fileName.replace("/", "")}
+              className="px-2.5 py-1 rounded-lg bg-emerald-900/60 hover:bg-emerald-800 border border-emerald-600/60 text-emerald-100 text-xs font-medium flex items-center gap-1 transition-all active:scale-95 cursor-pointer"
+              title="Download PDF to read offline anytime"
+            >
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
+              </svg>
+              <span>Download</span>
             </a>
           </div>
         </div>
@@ -189,28 +202,42 @@ export function TarjamaClient() {
                 {activeJild.surahRange}
               </p>
 
-              <div className="flex flex-col sm:flex-row items-center gap-3 w-full max-w-sm">
+              <div className="flex flex-col gap-2.5 w-full max-w-sm">
                 <a
                   href={activeJild.fileName}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="w-full py-3 px-5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-semibold text-sm shadow-[0_4px_20px_rgba(16,185,129,0.35)] flex items-center justify-center gap-2 active:scale-95 transition-all cursor-pointer"
+                  className="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-semibold text-xs sm:text-sm shadow-[0_4px_20px_rgba(16,185,129,0.35)] flex items-center justify-center gap-2 active:scale-95 transition-all cursor-pointer"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" />
                   </svg>
-                  <span>براہ راست پی ڈی ایف پڑھیں (Open PDF)</span>
+                  <span>براہ راست آن لائن پڑھیں (Read Online)</span>
                 </a>
 
-                <button
-                  onClick={() => setIsSurahDrawerOpen(true)}
-                  className="w-full py-2.5 px-4 rounded-xl bg-[#0d271a] hover:bg-[#133825] border border-emerald-700/60 text-emerald-200 text-xs font-semibold flex items-center justify-center gap-2 transition-all active:scale-95 cursor-pointer"
-                >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
-                  </svg>
-                  <span>سورت منتخب کریں (Surah Index)</span>
-                </button>
+                <div className="grid grid-cols-2 gap-2">
+                  <a
+                    href={activeJild.fileName}
+                    download={activeJild.fileName.replace("/", "")}
+                    className="py-2 px-3 rounded-xl bg-[#092215] hover:bg-[#0f2e1e] border border-emerald-600/70 text-emerald-100 text-xs font-semibold flex items-center justify-center gap-1.5 transition-all active:scale-95 cursor-pointer text-center"
+                    title="Download to device for offline reading"
+                  >
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
+                    </svg>
+                    <span>ڈاؤنلوڈ (Offline)</span>
+                  </a>
+
+                  <button
+                    onClick={() => setIsSurahDrawerOpen(true)}
+                    className="py-2 px-3 rounded-xl bg-[#0d271a] hover:bg-[#133825] border border-emerald-700/60 text-emerald-200 text-xs font-semibold flex items-center justify-center gap-1.5 transition-all active:scale-95 cursor-pointer text-center"
+                  >
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
+                    </svg>
+                    <span>سورت فہرست</span>
+                  </button>
+                </div>
               </div>
 
               <p className="text-[11px] text-emerald-400/60 mt-4 max-w-xs">

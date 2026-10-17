@@ -18,7 +18,7 @@ const nextConfig = {
   async headers() {
     return [
       {
-        source: "/:path*",
+        source: "/recite/:path*",
         headers: [
           {
             key: "Cross-Origin-Opener-Policy",
@@ -27,6 +27,53 @@ const nextConfig = {
           {
             key: "Cross-Origin-Embedder-Policy",
             value: "credentialless",
+          },
+        ],
+      },
+      {
+        source: "/vendor/:path*",
+        headers: [
+          {
+            key: "Cross-Origin-Opener-Policy",
+            value: "same-origin",
+          },
+          {
+            key: "Cross-Origin-Embedder-Policy",
+            value: "credentialless",
+          },
+          {
+            key: "Cross-Origin-Resource-Policy",
+            value: "cross-origin",
+          },
+        ],
+      },
+      {
+        source: "/whisper-worker.js",
+        headers: [
+          {
+            key: "Cross-Origin-Opener-Policy",
+            value: "same-origin",
+          },
+          {
+            key: "Cross-Origin-Embedder-Policy",
+            value: "credentialless",
+          },
+          {
+            key: "Cross-Origin-Resource-Policy",
+            value: "cross-origin",
+          },
+        ],
+      },
+      {
+        source: "/:path*.pdf",
+        headers: [
+          {
+            key: "Cross-Origin-Resource-Policy",
+            value: "cross-origin",
+          },
+          {
+            key: "Accept-Ranges",
+            value: "bytes",
           },
         ],
       },

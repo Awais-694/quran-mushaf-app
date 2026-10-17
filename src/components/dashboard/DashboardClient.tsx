@@ -125,10 +125,6 @@ export function DashboardClient() {
             اَلسَّلَامُ عَلَيْكُمْ وَرَحْمَةُ اللهِ وَبَرَكَاتُهُ
           </p>
         </div>
-
-        <p className="text-xs sm:text-sm text-emerald-200/75 max-w-md mx-auto leading-relaxed px-2 font-normal">
-          Recite aloud with instant AI speech recognition on the authentic 16-line Taj Company Mushaf.
-        </p>
       </div>
 
       {/* Quick Resume Card (Ayah Progress & Resume Prompt) */}

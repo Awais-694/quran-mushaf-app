@@ -1,5 +1,5 @@
 // Tilawat PWA service worker — offline caching and stale-while-revalidate.
-const CACHE = "tilawat-v12";
+const CACHE = "tilawat-v13";
 
 self.addEventListener("install", (e) => {
   self.skipWaiting();
@@ -33,6 +33,11 @@ self.addEventListener("fetch", (e) => {
     url.pathname.includes("__nextjs") ||
     url.pathname.includes("hot-update")
   ) {
+    return;
+  }
+
+  // PDFs ko service worker bilkul intercept na kare taake byte-range requests direct stream hon
+  if (url.pathname.endsWith(".pdf") || url.pathname.includes(".pdf")) {
     return;
   }
 

@@ -18,9 +18,6 @@ import { db } from "@/lib/storage/db";
 import {
   getEnginePref,
   getFontSize,
-  setFontSize as saveFontSize,
-  resetFontSize,
-  getDefaultMushafFontSize,
   type EnginePref,
 } from "@/lib/settings";
 import mushafMeta from "@/data/mushaf-meta.json";
@@ -100,7 +97,7 @@ export function ReciteClient({
   // ---- settings + online status ----
   const [mounted, setMounted] = useState(false);
   const [enginePref, setEnginePref] = useState<EnginePref>("auto");
-  const [fontSize, setFontSize] = useState<number>(19);
+  const [fontSize, setFontSize] = useState<number>(24);
   const [online, setOnline] = useState(true);
 
   useEffect(() => {
@@ -118,15 +115,6 @@ export function ReciteClient({
     };
   }, []);
 
-  const changeFontSize = (delta: number) => {
-    const isMobile = typeof window !== "undefined" && window.innerWidth < 640;
-    const minF = 13;
-    const maxF = isMobile ? 22 : 28;
-    const next = Math.max(minF, Math.min(maxF, fontSize + delta));
-    setFontSize(next);
-    saveFontSize(next);
-  };
-
   const router = useRouter();
 
   const handleBack = () => {
@@ -136,14 +124,6 @@ export function ReciteClient({
       router.push("/surahs");
     }
   };
-
-  const handleResetFontSize = () => {
-    const def = resetFontSize();
-    setFontSize(def);
-  };
-
-  const defaultMushafSize = mounted ? getDefaultMushafFontSize() : 19;
-  const isDefaultSize = fontSize === defaultMushafSize;
 
   const activeEngine = enginePref === "auto" ? (online ? "webspeech" : "whisper") : enginePref;
   const listening = activeEngine === "webspeech" ? ws.listening : wh.listening;
@@ -280,7 +260,7 @@ export function ReciteClient({
         {/* Subtle luminous top accent line */}
         <div className="absolute inset-x-0 top-0 h-[1.5px] bg-gradient-to-r from-transparent via-emerald-400/50 to-transparent" />
 
-        {/* Top Utility Bar: Back button on Left, Font Zoom on Right */}
+        {/* Top Utility Bar: Back button */}
         <div className="flex items-center justify-between gap-3 mb-2">
           {/* Back Button */}
           <button
@@ -290,44 +270,6 @@ export function ReciteClient({
           >
             Back
           </button>
-
-          {/* Font Zoom Controls & Reset */}
-          <div className="flex items-center rounded-xl bg-[#05140d]/90 border border-emerald-800/70 p-0.5 shadow-inner">
-            <button
-              onClick={() => changeFontSize(-1)}
-              title="Zoom Out (A-)"
-              aria-label="Decrease font size"
-              className="w-7 h-7 flex items-center justify-center text-xs font-bold text-emerald-300/80 hover:text-white hover:bg-emerald-800/60 rounded-lg active:scale-95 transition-all cursor-pointer"
-            >
-              A-
-            </button>
-            <span className="px-1.5 text-xs font-mono font-medium text-emerald-200 min-w-[34px] text-center select-none">
-              {mounted ? fontSize : 19}px
-            </span>
-            <button
-              onClick={() => changeFontSize(1)}
-              title="Zoom In (A+)"
-              aria-label="Increase font size"
-              className="w-7 h-7 flex items-center justify-center text-xs font-bold text-emerald-300/80 hover:text-white hover:bg-emerald-800/60 rounded-lg active:scale-95 transition-all cursor-pointer"
-            >
-              A+
-            </button>
-
-            <div className="w-[1px] h-3.5 bg-emerald-900/80 mx-0.5" />
-
-            <button
-              onClick={handleResetFontSize}
-              title="Reset to authentic Mushaf PDF scale"
-              className={`px-2 py-1 rounded-lg text-[11px] font-semibold flex items-center gap-1 transition-all active:scale-95 cursor-pointer ${
-                isDefaultSize
-                  ? "text-emerald-500/40 bg-transparent cursor-default"
-                  : "text-amber-200 bg-amber-950/50 border border-amber-600/50 hover:bg-amber-900/60 hover:text-white shadow-sm"
-              }`}
-            >
-              <span>↺</span>
-              <span>Reset</span>
-            </button>
-          </div>
         </div>
 
         {/* Centered Surah Identity & Information */}

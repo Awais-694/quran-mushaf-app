@@ -19,7 +19,7 @@ import { useWhisper } from "@/hooks/useWhisper";
 export function SettingsClient() {
   const router = useRouter();
   const [engine, setEngine] = useState<EnginePref>("auto");
-  const [fontSize, setFontSizeState] = useState(19);
+  const [fontSize, setFontSizeState] = useState(24);
   const [theme, setThemeState] = useState<ThemePref>("dark");
   const [mounted, setMounted] = useState(false);
   const whisper = useWhisper(() => {});
@@ -50,7 +50,13 @@ export function SettingsClient() {
     setFontSizeState(def);
   };
 
-  const defaultMushafSize = mounted ? getDefaultMushafFontSize() : 19;
+  const adjustFont = (delta: number) => {
+    const next = Math.max(14, Math.min(36, fontSize + delta));
+    setFontSizeState(next);
+    setFontSize(next);
+  };
+
+  const defaultMushafSize = mounted ? getDefaultMushafFontSize() : 24;
   const isDefaultSize = fontSize === defaultMushafSize;
 
   const radioCls =
@@ -145,11 +151,11 @@ export function SettingsClient() {
         {whisper.error && <p className="text-rose-300 text-xs sm:text-sm mt-2">{whisper.error}</p>}
       </div>
 
-      {/* Mushaf Font Size & PDF Reset */}
+      {/* Mushaf Font Size & Zoom */}
       <div className="bg-[#0c1c14]/90 border border-emerald-900/60 rounded-2xl p-4 sm:p-5 shadow-lg backdrop-blur-sm">
         <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
           <h2 className="text-base font-semibold text-emerald-100">
-            Mushaf Font Size
+            Mushaf Font Size & Zoom
           </h2>
 
           <button
@@ -163,16 +169,40 @@ export function SettingsClient() {
             <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
             </svg>
-            <span>Reset to Mushaf PDF Scale</span>
+            <span>Reset to Default (24px)</span>
           </button>
         </div>
 
         <p className="text-xs text-emerald-300/70 mb-3">
-          Recommended scale: <b>19px</b> matches the Taj Company 16-line Mushaf PDF layout.
+          Default scale is <b>24px</b>. You can zoom in / out with buttons or select a preset size below:
         </p>
 
+        {/* Zoom In & Out Stepper */}
+        <div className="flex items-center gap-3 mb-4 p-2 rounded-xl bg-[#07160e] border border-emerald-900/70 w-fit">
+          <button
+            onClick={() => adjustFont(-1)}
+            disabled={fontSize <= 14}
+            className="w-8 h-8 flex items-center justify-center rounded-lg bg-emerald-900/70 hover:bg-emerald-800 disabled:opacity-40 text-emerald-100 font-bold text-sm transition-all active:scale-95 cursor-pointer"
+            title="Zoom Out (-1px)"
+          >
+            A−
+          </button>
+          <span className="text-sm font-mono font-bold text-emerald-200 min-w-[50px] text-center select-none">
+            {fontSize}px
+          </span>
+          <button
+            onClick={() => adjustFont(1)}
+            disabled={fontSize >= 36}
+            className="w-8 h-8 flex items-center justify-center rounded-lg bg-emerald-900/70 hover:bg-emerald-800 disabled:opacity-40 text-emerald-100 font-bold text-sm transition-all active:scale-95 cursor-pointer"
+            title="Zoom In (+1px)"
+          >
+            A+
+          </button>
+        </div>
+
+        {/* Preset Font Sizes */}
         <div className="flex flex-wrap gap-2">
-          {[14, 16, 17, 18, 19, 20, 22].map((s) => (
+          {[16, 18, 20, 22, 24, 26, 28, 30].map((s) => (
             <button
               key={s}
               onClick={() => {
@@ -181,11 +211,11 @@ export function SettingsClient() {
               }}
               className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-medium border transition-all active:scale-95 cursor-pointer ${
                 fontSize === s
-                  ? "bg-emerald-700 border-emerald-500 text-white shadow-md"
+                  ? "bg-emerald-700 border-emerald-500 text-white shadow-md font-semibold"
                   : "bg-emerald-950/60 border-emerald-900/70 text-emerald-200 hover:bg-emerald-900/60 hover:text-white"
               }`}
             >
-              {s}px {s === defaultMushafSize && "(PDF Default)"}
+              {s}px {s === defaultMushafSize && "(Default)"}
             </button>
           ))}
         </div>

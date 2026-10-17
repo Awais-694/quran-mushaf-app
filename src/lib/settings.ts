@@ -28,17 +28,17 @@ export function getEnginePref(): EnginePref {
 export function setEnginePref(v: EnginePref) { write(K.engine, v); }
 
 /**
- * Default Mushaf scale: 22px.
+ * Default Mushaf scale: 24px.
  */
 export function getDefaultMushafFontSize(): number {
-  return 19;
+  return 24;
 }
 
 export function getFontSize(): number {
   const raw = read(K.fontSize);
   if (!raw) return getDefaultMushafFontSize();
   const v = Number(raw);
-  if (v >= 13 && v <= 32) {
+  if (v >= 13 && v <= 36) {
     return v;
   }
   return getDefaultMushafFontSize();

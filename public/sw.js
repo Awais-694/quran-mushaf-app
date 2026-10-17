@@ -1,5 +1,5 @@
 // Tilawat PWA service worker — offline caching and stale-while-revalidate.
-const CACHE = "tilawat-v6";
+const CACHE = "tilawat-v7";
 
 self.addEventListener("install", (e) => {
   self.skipWaiting();

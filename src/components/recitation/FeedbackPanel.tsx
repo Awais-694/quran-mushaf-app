@@ -1,3 +1,7 @@
+"use client";
+
+import { useState } from "react";
+
 export function FeedbackPanel({
   lastHeard,
   mistakes,
@@ -13,11 +17,42 @@ export function FeedbackPanel({
   listening: boolean;
   activeEngine: string;
 }) {
+  const [open, setOpen] = useState(false);
   const pct = total ? Math.round((revealed / total) * 100) : 0;
   const isWhisper = activeEngine === "whisper";
 
+  if (!open) {
+    return (
+      <div className="flex justify-center mt-3 mb-6">
+        <button
+          onClick={() => setOpen(true)}
+          className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-medium text-emerald-200/90 bg-[#07160f]/90 hover:bg-[#0c2418] border border-emerald-800/60 hover:border-emerald-600/70 shadow-md backdrop-blur-md active:scale-95 transition-all cursor-pointer"
+          title="Click to view voice recognition status and heard text"
+        >
+          <span
+            className={`w-2 h-2 rounded-full ${
+              listening ? "bg-emerald-400 animate-pulse" : "bg-emerald-700"
+            }`}
+          />
+          <span className="text-white font-medium text-[11px] sm:text-xs">
+            {listening ? "Live Voice Active" : "Voice Status"}
+          </span>
+          <span className="text-emerald-400/60 font-mono text-[10px] sm:text-[11px]">
+            ({revealed}/{total} words)
+          </span>
+          <span className="text-emerald-400 text-[10px] sm:text-[11px] ml-1 flex items-center gap-1 font-semibold">
+            <span>Show Status</span>
+            <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+            </svg>
+          </span>
+        </button>
+      </div>
+    );
+  }
+
   return (
-    <div className="bg-[#0b1a13]/90 backdrop-blur-md border border-emerald-800/60 rounded-2xl p-3 sm:p-3.5 shadow-lg text-emerald-100 mt-4 mb-8">
+    <div className="bg-[#0b1a13]/90 backdrop-blur-md border border-emerald-800/60 rounded-2xl p-3 sm:p-3.5 shadow-lg text-emerald-100 mt-4 mb-8 transition-all">
       <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-emerald-300/80 mb-2 border-b border-emerald-900/50 pb-2">
         <div className="flex items-center gap-2">
           <span
@@ -48,6 +83,18 @@ export function FeedbackPanel({
               {mistakes} {mistakes === 1 ? "correction" : "corrections"}
             </span>
           )}
+
+          {/* Hide / Collapse Button */}
+          <button
+            onClick={() => setOpen(false)}
+            className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-300 hover:text-white bg-emerald-950/70 hover:bg-emerald-900/70 border border-emerald-800/60 px-2 py-0.5 rounded-md transition-all active:scale-95 cursor-pointer ml-1"
+            title="Hide status panel to reduce scrolling"
+          >
+            <span>Hide</span>
+            <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M5 15l7-7 7 7" />
+            </svg>
+          </button>
         </div>
       </div>
 

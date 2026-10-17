@@ -55,18 +55,25 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
             {/* Segmented Pill Navigation & Settings */}
             <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-              {/* Segmented Glass Capsule for Surahs & Progress */}
+              {/* Segmented Glass Capsule for Surahs, Tarjama & Progress */}
               <div className="flex items-center p-0.5 rounded-full bg-[#05140d]/90 border border-emerald-800/70 shadow-inner">
                 <Link
                   href="/surahs"
-                  className="px-3 sm:px-4 py-1 sm:py-1.5 rounded-full text-xs sm:text-sm font-semibold tracking-wide text-emerald-200/90 hover:text-white hover:bg-emerald-800/60 transition-all duration-200 active:scale-95"
+                  className="px-2.5 sm:px-4 py-1 sm:py-1.5 rounded-full text-xs sm:text-sm font-semibold tracking-wide text-emerald-200/90 hover:text-white hover:bg-emerald-800/60 transition-all duration-200 active:scale-95"
                 >
                   Surahs
                 </Link>
                 <div className="w-[1px] h-3.5 bg-emerald-800/70" />
                 <Link
+                  href="/tarjama"
+                  className="px-2.5 sm:px-4 py-1 sm:py-1.5 rounded-full text-xs sm:text-sm font-semibold tracking-wide text-emerald-200/90 hover:text-white hover:bg-emerald-800/60 transition-all duration-200 active:scale-95"
+                >
+                  Tarjama
+                </Link>
+                <div className="w-[1px] h-3.5 bg-emerald-800/70" />
+                <Link
                   href="/stats"
-                  className="px-3 sm:px-4 py-1 sm:py-1.5 rounded-full text-xs sm:text-sm font-semibold tracking-wide text-emerald-200/90 hover:text-white hover:bg-emerald-800/60 transition-all duration-200 active:scale-95"
+                  className="px-2.5 sm:px-4 py-1 sm:py-1.5 rounded-full text-xs sm:text-sm font-semibold tracking-wide text-emerald-200/90 hover:text-white hover:bg-emerald-800/60 transition-all duration-200 active:scale-95"
                 >
                   Progress
                 </Link>

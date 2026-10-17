@@ -50,7 +50,7 @@ export function SettingsClient() {
     setFontSizeState(def);
   };
 
-  const defaultMushafSize = mounted ? getDefaultMushafFontSize() : 22;
+  const defaultMushafSize = mounted ? getDefaultMushafFontSize() : 19;
   const isDefaultSize = fontSize === defaultMushafSize;
 
   const radioCls =
@@ -140,7 +140,7 @@ export function SettingsClient() {
           disabled={whisper.modelState === "loading" || whisper.modelState === "ready"}
           className="px-4 py-2 rounded-xl bg-emerald-700 hover:bg-emerald-600 disabled:opacity-50 text-white text-xs sm:text-sm font-semibold transition-all shadow-md active:scale-95 cursor-pointer"
         >
-          {whisper.modelState === "ready" ? "Model Installed" : "Download Model (~150 MB, one-time)"}
+          {whisper.modelState === "ready" ? "Model Installed" : "Download Model (~300 MB GPU, one-time)"}
         </button>
         {whisper.error && <p className="text-rose-300 text-xs sm:text-sm mt-2">{whisper.error}</p>}
       </div>
@@ -168,11 +168,11 @@ export function SettingsClient() {
         </div>
 
         <p className="text-xs text-emerald-300/70 mb-3">
-          Recommended scale: <b>22px</b> matches the Taj Company 16-line Mushaf PDF layout.
+          Recommended scale: <b>19px</b> matches the Taj Company 16-line Mushaf PDF layout.
         </p>
 
         <div className="flex flex-wrap gap-2">
-          {[16, 18, 20, 22, 24, 26].map((s) => (
+          {[14, 16, 17, 18, 19, 20, 22].map((s) => (
             <button
               key={s}
               onClick={() => {

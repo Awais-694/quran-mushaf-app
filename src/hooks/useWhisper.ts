@@ -46,8 +46,6 @@ export function useWhisper(onResult: Handler) {
   const [modelState, setModelState] = useState<WhisperModelState>("idle");
   const [modelProgress, setModelProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
-  // "cpu" ya "gpu" — worker ne model asal me kis device par load kiya
-  const [engineDevice, setEngineDevice] = useState<"cpu" | "gpu">("cpu");
 
   const workerRef = useRef<Worker | null>(null);
   const handlerRef = useRef(onResult);
@@ -65,15 +63,12 @@ export function useWhisper(onResult: Handler) {
   const processAudio = (audio: Float32Array) => {
     if (!workerRef.current) return;
     if (isBusyRef.current) {
-      // Worker is currently busy computing on CPU — hold the latest audio chunk
+      // Worker is currently busy computing on GPU — hold the latest audio chunk
       pendingAudioRef.current = audio;
       return;
     }
     isBusyRef.current = true;
-    handlerRef.current(
-      finalsRef.current.join(" "),
-      engineDevice === "gpu" ? "Analyzing audio on GPU…" : "Analyzing audio on device CPU…"
-    );
+    handlerRef.current(finalsRef.current.join(" "), "Analyzing audio on device GPU…");
     workerRef.current.postMessage({ type: "transcribe", audio }, [audio.buffer as ArrayBuffer]);
   };
 
@@ -107,7 +102,7 @@ export function useWhisper(onResult: Handler) {
             sum += audio[i] * audio[i];
           }
           const rms = Math.sqrt(sum / audio.length);
-          if (rms >= 0.012) {
+          if (rms >= 0.005) {
             processAudio(audio);
           }
         }
@@ -115,21 +110,20 @@ export function useWhisper(onResult: Handler) {
       if (activeRef.current) recordSegment();
     };
     rec.start();
-    // 3.2 second window for faster turnaround with multi-threaded decoder
-    setTimeout(() => { if (rec.state === "recording") rec.stop(); }, 3200);
+    // 2.2 second window for fast speech pickup and turnaround
+    setTimeout(() => { if (rec.state === "recording") rec.stop(); }, 2200);
   };
 
   const ensureWorker = () => {
     if (workerRef.current) return workerRef.current;
     const w = new Worker("/whisper-worker.js", { type: "module" });
     w.onmessage = (e: MessageEvent) => {
-      const m = e.data as { type: string; progress?: number; text?: string; message?: string; device?: string };
+      const m = e.data as { type: string; progress?: number; text?: string; message?: string };
       if (m.type === "progress") {
         setModelProgress(m.progress ?? 0);
       } else if (m.type === "ready") {
         modelStateRef.current = "ready";
         setModelState("ready");
-        setEngineDevice(m.device === "gpu" ? "gpu" : "cpu");
         if (pendingStart.current) {
           pendingStart.current = false;
           void beginRecording();
@@ -200,5 +194,5 @@ export function useWhisper(onResult: Handler) {
     []
   );
 
-  return { supported, listening, modelState, modelProgress, error, start, stop, resetFinals, loadModel, engineDevice };
+  return { supported, listening, modelState, modelProgress, error, start, stop, resetFinals, loadModel };
 }

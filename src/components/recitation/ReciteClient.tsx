@@ -13,11 +13,14 @@ import { toArabicDigits } from "@/components/mushaf/AyahMarker";
 import { ProgressBar } from "@/components/common/ProgressBar";
 import { FeedbackPanel } from "@/components/recitation/FeedbackPanel";
 import { MicButton } from "@/components/recitation/MicButton";
-import { playAyah, stopAyah } from "@/lib/audio/player";
+import { playAyah } from "@/lib/audio/player";
 import { db } from "@/lib/storage/db";
 import {
   getEnginePref,
   getFontSize,
+  setFontSize as saveFontSize,
+  resetFontSize,
+  getDefaultMushafFontSize,
   type EnginePref,
 } from "@/lib/settings";
 import mushafMeta from "@/data/mushaf-meta.json";
@@ -88,17 +91,8 @@ export function ReciteClient({
     [loaded]
   );
 
-  const {
-    revealed,
-    displayRevealed,
-    mistakes,
-    lastHeard,
-    handleResult,
-    reset,
-    setInitialProgress,
-    jumpToProgress,
-    completed,
-  } = useRecitation(recTokens);
+  const { revealed, displayRevealed, mistakes, lastHeard, handleResult, reset, completed } =
+    useRecitation(recTokens);
 
   const ws = useSpeechRecognition(handleResult);
   const wh = useWhisper(handleResult);
@@ -124,6 +118,15 @@ export function ReciteClient({
     };
   }, []);
 
+  const changeFontSize = (delta: number) => {
+    const isMobile = typeof window !== "undefined" && window.innerWidth < 640;
+    const minF = 13;
+    const maxF = isMobile ? 22 : 28;
+    const next = Math.max(minF, Math.min(maxF, fontSize + delta));
+    setFontSize(next);
+    saveFontSize(next);
+  };
+
   const router = useRouter();
 
   const handleBack = () => {
@@ -134,49 +137,21 @@ export function ReciteClient({
     }
   };
 
+  const handleResetFontSize = () => {
+    const def = resetFontSize();
+    setFontSize(def);
+  };
+
+  const defaultMushafSize = mounted ? getDefaultMushafFontSize() : 19;
+  const isDefaultSize = fontSize === defaultMushafSize;
+
   const activeEngine = enginePref === "auto" ? (online ? "webspeech" : "whisper") : enginePref;
   const listening = activeEngine === "webspeech" ? ws.listening : wh.listening;
 
-  // ---- progress saving & state restoration ----
+  // ---- progress saving (IndexedDB) ----
   const savedRevealed = useRef(0);
   const savedMistakes = useRef(0);
   const sessionCounted = useRef(false);
-  const [resumedFromAyah, setResumedFromAyah] = useState<number | null>(null);
-  const initialRestoreDone = useRef(false);
-
-  // Restore previous progress on mount if user had recited this surah before
-  useEffect(() => {
-    if (!loaded || initialRestoreDone.current) return;
-    initialRestoreDone.current = true;
-
-    (async () => {
-      const ex = await db.progress.get(surahNumber);
-      const prevRev = ex?.revealedWords ?? 0;
-      const lastAyah = ex?.lastAyahNumber || 1;
-
-      // Always update localStorage immediately so Dashboard knows this surah was opened
-      try {
-        localStorage.setItem(
-          "tilawat_last_recitation",
-          JSON.stringify({
-            surahNumber,
-            revealedWords: prevRev,
-            totalWords: loaded.tokens.length,
-            lastAyahNumber: lastAyah,
-            timestamp: Date.now(),
-          })
-        );
-      } catch {}
-
-      if (prevRev > 0 && prevRev < loaded.tokens.length) {
-        setInitialProgress(prevRev);
-        savedRevealed.current = prevRev;
-        const lastWordIdx = Math.max(0, Math.min(prevRev - 1, loaded.tokens.length - 1));
-        const resumedAyah = loaded.tokens[lastWordIdx]?.ayahNumber || lastAyah;
-        setResumedFromAyah(resumedAyah);
-      }
-    })();
-  }, [loaded, surahNumber, setInitialProgress]);
 
   const saveProgress = async () => {
     if (!loaded) return;
@@ -184,15 +159,12 @@ export function ReciteClient({
     const rDelta = Math.max(0, revealed - savedRevealed.current);
     const mDelta = Math.max(0, mistakes - savedMistakes.current);
     const ex = await db.progress.get(surahNumber);
-    const lastWordIdx = Math.max(0, Math.min(revealed - 1, loaded.tokens.length - 1));
-    const currentAyah = loaded.tokens[lastWordIdx]?.ayahNumber || 1;
     await db.progress.put({
       surahNumber,
       revealedWords: Math.max(ex?.revealedWords ?? 0, revealed),
       totalWords: loaded.tokens.length,
       completed: completed || (ex?.completed ?? false),
       lastPracticedAt: Date.now(),
-      lastAyahNumber: currentAyah > 0 ? currentAyah : 1,
     });
     if (rDelta || mDelta || sessionCounted.current) {
       const row = await db.activity.get(today);
@@ -209,49 +181,11 @@ export function ReciteClient({
   };
   const saveRef = useRef(saveProgress);
   saveRef.current = saveProgress;
-
-  // Sync to localStorage synchronously whenever revealed updates
-  useEffect(() => {
-    if (!loaded) return;
-    const lastWordIdx = Math.max(0, Math.min(revealed - 1, loaded.tokens.length - 1));
-    const currentAyah = loaded.tokens[lastWordIdx]?.ayahNumber || 1;
-    try {
-      localStorage.setItem(
-        "tilawat_last_recitation",
-        JSON.stringify({
-          surahNumber,
-          revealedWords: revealed,
-          totalWords: loaded.tokens.length,
-          lastAyahNumber: currentAyah,
-          timestamp: Date.now(),
-        })
-      );
-    } catch {}
-  }, [revealed, loaded, surahNumber]);
-
   useEffect(() => {
     if (!loaded || (revealed === 0 && mistakes === 0)) return;
     const t = setTimeout(() => void saveRef.current(), 900);
     return () => clearTimeout(t);
   }, [revealed, mistakes, loaded]);
-
-  // Flush progress immediately if user navigates away or closes tab/app
-  useEffect(() => {
-    const handleFlush = () => {
-      void saveRef.current();
-    };
-    window.addEventListener("beforeunload", handleFlush);
-    const handleVis = () => {
-      if (document.visibilityState === "hidden") {
-        void saveRef.current();
-      }
-    };
-    document.addEventListener("visibilitychange", handleVis);
-    return () => {
-      window.removeEventListener("beforeunload", handleFlush);
-      document.removeEventListener("visibilitychange", handleVis);
-    };
-  }, []);
 
   // ---- galat lafz par red flash + kamzor lafz record ----
   const [flash, setFlash] = useState(false);
@@ -301,119 +235,24 @@ export function ReciteClient({
     }
   };
 
-  const resetAll = async () => {
+  const resetAll = () => {
     ws.stop();
     wh.stop();
     ws.resetFinals();
     wh.resetFinals();
     reset();
-    stopAudio();
     savedRevealed.current = 0;
     savedMistakes.current = 0;
-    setResumedFromAyah(null);
     setPageIdx(0);
-
-    // Reset progress in DB and localStorage so user can recite fresh
-    try {
-      await db.progress.put({
-        surahNumber,
-        revealedWords: 0,
-        totalWords: loaded?.tokens.length ?? 0,
-        completed: false,
-        lastPracticedAt: Date.now(),
-        lastAyahNumber: 1,
-      });
-      localStorage.setItem(
-        "tilawat_last_recitation",
-        JSON.stringify({
-          surahNumber,
-          revealedWords: 0,
-          totalWords: loaded?.tokens.length ?? 0,
-          lastAyahNumber: 1,
-          timestamp: Date.now(),
-        })
-      );
-    } catch {}
   };
 
-  const [isPlayingAudio, setIsPlayingAudio] = useState(false);
-  const activeAudioRef = useRef<HTMLAudioElement | null>(null);
-
-  const stopAudio = () => {
-    stopAyah();
-    if (activeAudioRef.current) {
-      activeAudioRef.current.pause();
-      activeAudioRef.current = null;
-    }
-    setIsPlayingAudio(false);
-  };
-
-  const playAudioForAyah = (globalAyahId: number) => {
-    stopAudio();
-    try {
-      const audio = playAyah(globalAyahId);
-      activeAudioRef.current = audio;
-      setIsPlayingAudio(true);
-      audio.onended = () => {
-        setIsPlayingAudio(false);
-        activeAudioRef.current = null;
-      };
-      audio.onerror = () => {
-        setIsPlayingAudio(false);
-        activeAudioRef.current = null;
-      };
-      audio.onpause = () => {
-        setIsPlayingAudio(false);
-      };
-    } catch {
-      setIsPlayingAudio(false);
-    }
-  };
-
-  const jumpToToken = (idx: number, playAudio: boolean = true) => {
+  const playCurrentAyah = () => {
     if (!loaded) return;
-    jumpToProgress(idx);
-    savedRevealed.current = idx;
-    ws.resetFinals();
-    wh.resetFinals();
-
-    const targetTok = loaded.tokens[idx];
-    if (targetTok) {
-      const pi = loaded.pages.indexOf(targetTok.page);
-      if (pi >= 0 && pi !== pageIdx) {
-        setPageIdx(pi);
-      }
-      const ayah = targetTok.ayahNumber || 1;
-      setResumedFromAyah(ayah);
-
-      if (playAudio) {
-        const audioId =
-          targetTok.globalAyahId ||
-          loaded.ayahs.find((a) => a.n === ayah)?.id ||
-          loaded.ayahs[0]?.id ||
-          1;
-        playAudioForAyah(audioId);
-      }
-    }
+    const idx = Math.min(displayRevealed, total - 1);
+    const tok = loaded.tokens[idx];
+    const id = tok?.globalAyahId || loaded.ayahs[0]?.id;
+    if (id) playAyah(id);
   };
-
-  const togglePlayAudio = () => {
-    if (isPlayingAudio) {
-      stopAudio();
-    } else {
-      if (!loaded) return;
-      const idx = Math.min(displayRevealed, total - 1);
-      const tok = loaded.tokens[idx];
-      const id = tok?.globalAyahId || loaded.ayahs[0]?.id;
-      if (id) playAudioForAyah(id);
-    }
-  };
-
-  useEffect(() => {
-    return () => {
-      stopAudio();
-    };
-  }, []);
 
   if (loadErr) return <p className="text-center py-10 text-rose-300">Could not load this surah&apos;s data.</p>;
   if (!loaded) return <p className="text-center py-10 text-emerald-300/70">Loading the Mushaf…</p>;
@@ -441,19 +280,54 @@ export function ReciteClient({
         {/* Subtle luminous top accent line */}
         <div className="absolute inset-x-0 top-0 h-[1.5px] bg-gradient-to-r from-transparent via-emerald-400/50 to-transparent" />
 
-        {/* Top Utility Bar: Back button */}
+        {/* Top Utility Bar: Back button on Left, Font Zoom on Right */}
         <div className="flex items-center justify-between gap-3 mb-2">
           {/* Back Button */}
           <button
             onClick={handleBack}
             title="Go back"
-            className="inline-flex items-center justify-center gap-1.5 px-4 py-1.5 rounded-full text-xs sm:text-sm font-semibold tracking-wide text-emerald-100 bg-[#0d2217]/90 hover:bg-[#133022] border border-emerald-600/50 hover:border-emerald-400/80 shadow-[0_2px_8px_rgba(0,0,0,0.35)] hover:shadow-[0_0_12px_rgba(16,185,129,0.25)] backdrop-blur-md active:scale-95 transition-all duration-200 cursor-pointer"
+            className="inline-flex items-center justify-center px-4 py-1.5 rounded-full text-xs sm:text-sm font-semibold tracking-wide text-emerald-100 bg-[#0d2217]/90 hover:bg-[#133022] border border-emerald-600/50 hover:border-emerald-400/80 shadow-[0_2px_8px_rgba(0,0,0,0.35)] hover:shadow-[0_0_12px_rgba(16,185,129,0.25)] backdrop-blur-md active:scale-95 transition-all duration-200 cursor-pointer"
           >
-            <svg className="w-3.5 h-3.5 text-emerald-300" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
-            </svg>
-            <span>Back</span>
+            Back
           </button>
+
+          {/* Font Zoom Controls & Reset */}
+          <div className="flex items-center rounded-xl bg-[#05140d]/90 border border-emerald-800/70 p-0.5 shadow-inner">
+            <button
+              onClick={() => changeFontSize(-1)}
+              title="Zoom Out (A-)"
+              aria-label="Decrease font size"
+              className="w-7 h-7 flex items-center justify-center text-xs font-bold text-emerald-300/80 hover:text-white hover:bg-emerald-800/60 rounded-lg active:scale-95 transition-all cursor-pointer"
+            >
+              A-
+            </button>
+            <span className="px-1.5 text-xs font-mono font-medium text-emerald-200 min-w-[34px] text-center select-none">
+              {mounted ? fontSize : 19}px
+            </span>
+            <button
+              onClick={() => changeFontSize(1)}
+              title="Zoom In (A+)"
+              aria-label="Increase font size"
+              className="w-7 h-7 flex items-center justify-center text-xs font-bold text-emerald-300/80 hover:text-white hover:bg-emerald-800/60 rounded-lg active:scale-95 transition-all cursor-pointer"
+            >
+              A+
+            </button>
+
+            <div className="w-[1px] h-3.5 bg-emerald-900/80 mx-0.5" />
+
+            <button
+              onClick={handleResetFontSize}
+              title="Reset to authentic Mushaf PDF scale"
+              className={`px-2 py-1 rounded-lg text-[11px] font-semibold flex items-center gap-1 transition-all active:scale-95 cursor-pointer ${
+                isDefaultSize
+                  ? "text-emerald-500/40 bg-transparent cursor-default"
+                  : "text-amber-200 bg-amber-950/50 border border-amber-600/50 hover:bg-amber-900/60 hover:text-white shadow-sm"
+              }`}
+            >
+              <span>↺</span>
+              <span>Reset</span>
+            </button>
+          </div>
         </div>
 
         {/* Centered Surah Identity & Information */}
@@ -481,27 +355,6 @@ export function ReciteClient({
             <span>Juz {firstAyahOnPage?.juz ?? loaded.juz}</span>
             <span className="text-emerald-800 select-none">•</span>
             <span>Page {currentPage} of {mushafMeta.totalPages}</span>
-            <span className="text-emerald-800 select-none">•</span>
-            <div className="inline-flex items-center gap-1.5 bg-[#0a1e14]/90 px-2 py-0.5 rounded-full border border-emerald-700/60 text-[11px] text-emerald-200 shadow-sm">
-              <span className="text-[10px] text-emerald-400/80 font-medium uppercase tracking-wide">Recite from:</span>
-              <select
-                value={loaded.tokens[Math.min(displayRevealed, total - 1)]?.ayahNumber || 1}
-                onChange={(e) => {
-                  const targetAyah = Number(e.target.value);
-                  const firstTokenIdx = loaded.tokens.findIndex((t) => t.ayahNumber === targetAyah);
-                  if (firstTokenIdx >= 0) {
-                    jumpToToken(firstTokenIdx, true);
-                  }
-                }}
-                className="bg-transparent text-emerald-100 font-bold focus:outline-none cursor-pointer"
-              >
-                {loaded.ayahs.map((a) => (
-                  <option key={a.n} value={a.n} className="bg-[#07160f] text-emerald-100">
-                    Ayah {a.n}
-                  </option>
-                ))}
-              </select>
-            </div>
           </div>
         </div>
 
@@ -517,35 +370,13 @@ export function ReciteClient({
         </div>
       </div>
 
-      {/* Resumed Progress Banner */}
-      {resumedFromAyah && revealed > 0 && (
-        <div className="flex items-center justify-between gap-3 px-3.5 py-2 rounded-xl bg-gradient-to-r from-emerald-950/90 via-[#071a11]/90 to-emerald-950/90 border border-emerald-600/40 text-xs text-emerald-200 shadow-md">
-          <div className="flex items-center gap-2">
-            <span className="flex h-2 w-2 relative">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-400"></span>
-            </span>
-            <span>
-              Resumed recitation from <strong className="text-white">Ayah {resumedFromAyah}</strong>
-            </span>
-          </div>
-          <button
-            onClick={() => {
-              void resetAll();
-            }}
-            className="text-amber-300 hover:text-amber-200 underline font-semibold text-[11px] cursor-pointer"
-          >
-            Start Over
-          </button>
-        </div>
-      )}
 
       {/* Real Mushaf 16-Line Page Container */}
       <MushafPage
         surahName={loaded.meta.arabicName}
         pageNumber={currentPage}
         manzil={`منزل ${toArabicDigits(firstAyahOnPage?.manzil ?? loaded.manzil)}`}
-        fontSize={mounted ? fontSize : 22}
+        fontSize={mounted ? fontSize : 19}
       >
         {isSurahStartPage && (
           <div className="relative text-center my-1.5 px-3 py-1 sm:py-1.5 rounded-sm bg-gradient-to-r from-[#ebd6a7]/40 via-[#f8eed7] to-[#ebd6a7]/40 border-[2px] border-double border-[#1b382b] shadow-sm">
@@ -570,10 +401,7 @@ export function ReciteClient({
                 >
                   {words.map((t) => (
                     <span key={t.idx} className="inline-block transition-transform">
-                      <MushafWord
-                        token={{ display: t.display, normalized: "", state: stateOf(t.idx), ayahNumber: 0, page: t.page }}
-                        onClick={() => jumpToToken(t.idx, true)}
-                      />
+                      <MushafWord token={{ display: t.display, normalized: "", state: stateOf(t.idx), ayahNumber: 0, page: t.page }} />
                     </span>
                   ))}
                 </div>
@@ -591,43 +419,48 @@ export function ReciteClient({
               groups.push({ word: t });
             }
           }
+          const isVeryDense = groups.length >= 10;
+          const isDenseLine = groups.length >= 8;
           const isShortLine = groups.length < 4;
 
           return (
             <div
               key={lineNo}
-              className={`border-b border-[#1b382b]/30 last:border-b-0 py-0.5 sm:py-1 flex items-baseline whitespace-nowrap ${
-                isShortLine ? "justify-center gap-4" : "justify-between"
+              className={`border-b border-[#1b382b]/30 last:border-b-0 py-0.5 sm:py-1 flex items-baseline w-full max-w-full ${
+                isShortLine ? "justify-center gap-3 sm:gap-4 whitespace-nowrap" : "justify-between"
               }`}
+              style={{
+                fontSize: isVeryDense ? "0.86em" : isDenseLine ? "0.92em" : undefined,
+                letterSpacing: isVeryDense ? "-0.025em" : undefined,
+              }}
             >
-              {groups.map((g) => (
-                <span key={g.word.idx} className="inline-flex items-baseline gap-0.5">
-                  <MushafWord
-                    token={{
-                      display: g.word.display,
-                      normalized: "",
-                      state: stateOf(g.word.idx),
-                      ayahNumber: g.word.ayahNumber,
-                      page: g.word.page,
-                    }}
-                    onClick={() => jumpToToken(g.word.idx, true)}
-                  />
-                  {g.marker && (
+              {groups.map((g) => {
+                const isWordMarker = !normalizeArabic(g.word.display);
+                return (
+                  <span key={g.word.idx} className="inline-flex items-baseline shrink-0">
                     <MushafWord
                       token={{
-                        display: g.marker.display,
+                        display: g.word.display,
                         normalized: "",
-                        state: stateOf(g.marker.idx),
-                        ayahNumber: g.marker.ayahNumber,
-                        page: g.marker.page,
-                      }}
-                      onClick={() => {
-                        if (g.marker) jumpToToken(g.marker.idx, true);
+                        state: isWordMarker ? "correct" : stateOf(g.word.idx),
+                        ayahNumber: g.word.ayahNumber,
+                        page: g.word.page,
                       }}
                     />
-                  )}
-                </span>
-              ))}
+                    {g.marker && (
+                      <MushafWord
+                        token={{
+                          display: g.marker.display,
+                          normalized: "",
+                          state: "correct",
+                          ayahNumber: g.marker.ayahNumber,
+                          page: g.marker.page,
+                        }}
+                      />
+                    )}
+                  </span>
+                );
+              })}
             </div>
           );
         })}
@@ -694,25 +527,14 @@ export function ReciteClient({
 
           {/* Audio Reference Player */}
           <button
-            onClick={togglePlayAudio}
-            title={isPlayingAudio ? "Stop Audio" : "Listen to reference recitation"}
-            aria-label={isPlayingAudio ? "Stop Audio" : "Listen to reference recitation"}
-            className={`w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center rounded-full transition-all active:scale-95 shadow-sm cursor-pointer ${
-              isPlayingAudio
-                ? "bg-emerald-500 text-white shadow-[0_0_18px_rgba(16,185,129,0.85)] border border-emerald-300 ring-2 ring-emerald-400/80 animate-pulse"
-                : "text-emerald-200 bg-emerald-950/80 hover:bg-emerald-900 border border-emerald-700/60 hover:border-emerald-500/80"
-            }`}
+            onClick={playCurrentAyah}
+            title="Listen to reference recitation"
+            className="flex items-center gap-1.5 px-3 sm:px-3.5 py-2 rounded-full text-xs font-semibold text-emerald-200 bg-emerald-950/80 hover:bg-emerald-900 border border-emerald-700/60 hover:border-emerald-500/80 transition-all active:scale-95 shadow-sm cursor-pointer"
           >
-            {isPlayingAudio ? (
-              <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white" fill="currentColor" viewBox="0 0 24 24">
-                <rect x="6" y="5" width="4" height="14" rx="1.5" />
-                <rect x="14" y="5" width="4" height="14" rx="1.5" />
-              </svg>
-            ) : (
-              <svg className="w-4 h-4 text-emerald-300" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
-              </svg>
-            )}
+            <svg className="w-4 h-4 text-emerald-300" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
+            </svg>
+            <span className="hidden sm:inline">Listen</span>
           </button>
 
           {/* Reset Progress Button */}
@@ -764,7 +586,6 @@ export function ReciteClient({
         total={total}
         listening={listening}
         activeEngine={activeEngine}
-        whisperDevice={wh.engineDevice}
       />
     </div>
   );

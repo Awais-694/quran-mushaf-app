@@ -5,7 +5,6 @@ export function FeedbackPanel({
   total,
   listening,
   activeEngine,
-  whisperDevice,
 }: {
   lastHeard: string;
   mistakes: number;
@@ -13,7 +12,6 @@ export function FeedbackPanel({
   total: number;
   listening: boolean;
   activeEngine: string;
-  whisperDevice: "cpu" | "gpu";
 }) {
   const pct = total ? Math.round((revealed / total) * 100) : 0;
   const isWhisper = activeEngine === "whisper";
@@ -37,11 +35,7 @@ export function FeedbackPanel({
                 : "bg-emerald-950/80 text-emerald-300 border-emerald-700/60"
             }`}
           >
-            {isWhisper
-              ? whisperDevice === "gpu"
-                ? "Offline Whisper (GPU)"
-                : "Offline Whisper (CPU)"
-              : "Online Web Speech (Instant)"}
+            {isWhisper ? "Offline Whisper (GPU)" : "Online Web Speech (Instant)"}
           </span>
         </div>
 
@@ -67,9 +61,7 @@ export function FeedbackPanel({
           <span className="text-emerald-400/50 text-xs sm:text-sm font-sans not-italic text-left w-full" dir="ltr">
             {listening
               ? isWhisper
-                ? whisperDevice === "gpu"
-                  ? "Listening… recite clearly. GPU model analyzes in near real-time."
-                  : "Listening… recite clearly. Offline CPU model analyzes in phrases (~4-6s)."
+                ? "Listening… recite clearly. Offline GPU model analyzes in phrases (~2-4s)."
                 : "Listening… recite aloud, words will reveal on the Mushaf instantly."
               : "Press 'Start Reciting' to begin reading."}
           </span>

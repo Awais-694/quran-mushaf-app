@@ -57,6 +57,7 @@ export function useSpeechRecognition(onResult: ResultHandler) {
     rec.lang = "ar-SA";
     rec.continuous = true;
     rec.interimResults = true;
+    try { (rec as unknown as { maxAlternatives: number }).maxAlternatives = 3; } catch { /* ignore */ }
     sessionFinalsAppended.current = 0;
     rec.onresult = (e) => {
       let finalsInSession = 0;
@@ -75,9 +76,9 @@ export function useSpeechRecognition(onResult: ResultHandler) {
             sessionFinalsAppended.current = finalsInSession;
           }
         } else {
-          const part = r[0].transcript.trim();
-          if (part) {
-            interimText += (interimText ? " " : "") + part;
+          const chunk = r[0].transcript.trim();
+          if (chunk) {
+            interimText += (interimText ? " " : "") + chunk;
           }
         }
       }

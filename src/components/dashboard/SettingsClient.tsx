@@ -51,7 +51,7 @@ export function SettingsClient() {
   };
 
   const adjustFont = (delta: number) => {
-    const next = Math.max(14, Math.min(36, fontSize + delta));
+    const next = Math.max(22, Math.min(26, fontSize + delta));
     setFontSizeState(next);
     setFontSize(next);
   };
@@ -174,16 +174,16 @@ export function SettingsClient() {
         </div>
 
         <p className="text-xs text-emerald-300/70 mb-3">
-          Default scale is <b>24px</b>. You can zoom in / out with buttons or select a preset size below:
+          Scale range is <b>22px – 26px</b> (Default: <b>24px</b>). Optimized for Taj 16-line Mushaf PDF layout.
         </p>
 
         {/* Zoom In & Out Stepper */}
         <div className="flex items-center gap-3 mb-4 p-2 rounded-xl bg-[#07160e] border border-emerald-900/70 w-fit">
           <button
             onClick={() => adjustFont(-1)}
-            disabled={fontSize <= 14}
-            className="w-8 h-8 flex items-center justify-center rounded-lg bg-emerald-900/70 hover:bg-emerald-800 disabled:opacity-40 text-emerald-100 font-bold text-sm transition-all active:scale-95 cursor-pointer"
-            title="Zoom Out (-1px)"
+            disabled={fontSize <= 22}
+            className="w-8 h-8 flex items-center justify-center rounded-lg bg-emerald-900/70 hover:bg-emerald-800 disabled:opacity-30 disabled:cursor-not-allowed text-emerald-100 font-bold text-sm transition-all active:scale-95 cursor-pointer"
+            title="Zoom Out (Min 22px)"
           >
             A−
           </button>
@@ -192,26 +192,26 @@ export function SettingsClient() {
           </span>
           <button
             onClick={() => adjustFont(1)}
-            disabled={fontSize >= 36}
-            className="w-8 h-8 flex items-center justify-center rounded-lg bg-emerald-900/70 hover:bg-emerald-800 disabled:opacity-40 text-emerald-100 font-bold text-sm transition-all active:scale-95 cursor-pointer"
-            title="Zoom In (+1px)"
+            disabled={fontSize >= 26}
+            className="w-8 h-8 flex items-center justify-center rounded-lg bg-emerald-900/70 hover:bg-emerald-800 disabled:opacity-30 disabled:cursor-not-allowed text-emerald-100 font-bold text-sm transition-all active:scale-95 cursor-pointer"
+            title="Zoom In (Max 26px)"
           >
             A+
           </button>
         </div>
 
-        {/* Preset Font Sizes */}
-        <div className="flex flex-wrap gap-2">
-          {[16, 18, 20, 22, 24, 26, 28, 30].map((s) => (
+        {/* Preset Font Sizes (22px, 24px, 26px) */}
+        <div className="flex flex-wrap gap-2.5">
+          {[22, 24, 26].map((s) => (
             <button
               key={s}
               onClick={() => {
                 setFontSizeState(s);
                 setFontSize(s);
               }}
-              className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-medium border transition-all active:scale-95 cursor-pointer ${
+              className={`px-5 py-2.5 rounded-xl text-xs sm:text-sm font-medium border transition-all active:scale-95 cursor-pointer ${
                 fontSize === s
-                  ? "bg-emerald-700 border-emerald-500 text-white shadow-md font-semibold"
+                  ? "bg-emerald-700 border-emerald-500 text-white shadow-md font-semibold ring-1 ring-emerald-400/40"
                   : "bg-emerald-950/60 border-emerald-900/70 text-emerald-200 hover:bg-emerald-900/60 hover:text-white"
               }`}
             >

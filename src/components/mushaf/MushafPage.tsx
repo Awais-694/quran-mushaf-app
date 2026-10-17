@@ -29,7 +29,7 @@ export function MushafPage({
         <div
           dir="rtl"
           className="font-quran leading-[1.75] sm:leading-[1.9] text-right select-none w-full max-w-full"
-          style={{ fontSize: `${fontSize && fontSize >= 14 && fontSize <= 36 ? fontSize : 24}px` }}
+          style={{ fontSize: `${fontSize && fontSize >= 22 && fontSize <= 26 ? fontSize : 24}px` }}
         >
           {children}
         </div>

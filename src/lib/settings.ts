@@ -38,7 +38,7 @@ export function getFontSize(): number {
   const raw = read(K.fontSize);
   if (!raw) return getDefaultMushafFontSize();
   const v = Number(raw);
-  if (v >= 13 && v <= 36) {
+  if (v >= 22 && v <= 26) {
     return v;
   }
   return getDefaultMushafFontSize();

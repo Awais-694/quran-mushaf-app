@@ -9,7 +9,12 @@ export function SwRegister() {
     if (typeof window === "undefined" || !("serviceWorker" in navigator)) return;
 
     if (process.env.NODE_ENV === "production") {
-      navigator.serviceWorker.register("/sw.js").catch(() => {});
+      navigator.serviceWorker
+        .register("/sw.js")
+        .then((reg) => {
+          reg.update().catch(() => {});
+        })
+        .catch(() => {});
     } else {
       navigator.serviceWorker
         .getRegistrations()

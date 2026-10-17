@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { JILDS, type JildInfo } from "@/data/tarjama-meta";
 import surahsMeta from "@/data/surahs-meta.json";
@@ -11,6 +11,17 @@ export function TarjamaClient() {
   const [searchQuery, setSearchQuery] = useState("");
   const [isSurahDrawerOpen, setIsSurahDrawerOpen] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
+
+  // Automatically update Service Worker so old cached worker does not intercept PDFs
+  useEffect(() => {
+    if (typeof window !== "undefined" && "serviceWorker" in navigator) {
+      navigator.serviceWorker.getRegistrations().then((registrations) => {
+        for (const reg of registrations) {
+          reg.update().catch(() => {});
+        }
+      });
+    }
+  }, []);
 
   const activeJild = useMemo(
     () => JILDS.find((j) => j.id === activeJildId) ?? JILDS[0],

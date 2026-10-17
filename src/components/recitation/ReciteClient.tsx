@@ -107,11 +107,19 @@ export function ReciteClient({
     setOnline(navigator.onLine);
     const on = () => setOnline(true);
     const off = () => setOnline(false);
+    const onFocusOrStorage = () => {
+      setFontSize(getFontSize());
+      setEnginePref(getEnginePref());
+    };
     window.addEventListener("online", on);
     window.addEventListener("offline", off);
+    window.addEventListener("focus", onFocusOrStorage);
+    window.addEventListener("storage", onFocusOrStorage);
     return () => {
       window.removeEventListener("online", on);
       window.removeEventListener("offline", off);
+      window.removeEventListener("focus", onFocusOrStorage);
+      window.removeEventListener("storage", onFocusOrStorage);
     };
   }, []);
 
@@ -318,7 +326,7 @@ export function ReciteClient({
         surahName={loaded.meta.arabicName}
         pageNumber={currentPage}
         manzil={`منزل ${toArabicDigits(firstAyahOnPage?.manzil ?? loaded.manzil)}`}
-        fontSize={mounted ? fontSize : 19}
+        fontSize={mounted ? fontSize : 24}
       >
         {isSurahStartPage && (
           <div className="relative text-center my-1.5 px-3 py-1 sm:py-1.5 rounded-sm bg-gradient-to-r from-[#ebd6a7]/40 via-[#f8eed7] to-[#ebd6a7]/40 border-[2px] border-double border-[#1b382b] shadow-sm">
@@ -361,25 +369,32 @@ export function ReciteClient({
               groups.push({ word: t });
             }
           }
-          const isVeryDense = groups.length >= 10;
-          const isDenseLine = groups.length >= 8;
-          const isShortLine = groups.length < 4;
+          const wordCount = groups.length;
+          const isShortLine = wordCount < 4;
+          // Authentic Mushaf typography: scale density so all words remain strictly on this line without breaking
+          const lineScale =
+            wordCount <= 5 ? 1 :
+            wordCount <= 7 ? 0.96 :
+            wordCount <= 8 ? 0.90 :
+            wordCount <= 9 ? 0.83 :
+            wordCount <= 10 ? 0.77 : 0.70;
+          const letterSpacing = wordCount >= 9 ? "-0.025em" : undefined;
 
           return (
             <div
               key={lineNo}
-              className={`border-b border-[#1b382b]/30 last:border-b-0 py-0.5 sm:py-1 flex items-baseline w-full max-w-full ${
-                isShortLine ? "justify-center gap-3 sm:gap-4 whitespace-nowrap" : "justify-between"
+              className={`border-b border-[#1b382b]/30 last:border-b-0 py-1 sm:py-1.5 flex items-baseline w-full max-w-full flex-nowrap whitespace-nowrap overflow-hidden ${
+                isShortLine ? "justify-center gap-4 sm:gap-6" : "justify-between"
               }`}
               style={{
-                fontSize: isVeryDense ? "0.86em" : isDenseLine ? "0.92em" : undefined,
-                letterSpacing: isVeryDense ? "-0.025em" : undefined,
+                fontSize: `${lineScale}em`,
+                letterSpacing,
               }}
             >
               {groups.map((g) => {
                 const isWordMarker = !normalizeArabic(g.word.display);
                 return (
-                  <span key={g.word.idx} className="inline-flex items-baseline shrink-0">
+                  <span key={g.word.idx} className="inline-flex items-baseline shrink-0 gap-0.5 sm:gap-1">
                     <MushafWord
                       token={{
                         display: g.word.display,

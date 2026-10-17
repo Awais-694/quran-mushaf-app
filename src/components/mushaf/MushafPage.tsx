@@ -25,11 +25,11 @@ export function MushafPage({
       </div>
 
       {/* Mushaf Decorative Border Frame */}
-      <div className="border-[2px] sm:border-[3px] border-double border-[#1b382b] rounded-sm px-1 py-1 sm:px-2.5 sm:py-2 bg-[#fbf9f2] ring-1 ring-[#c5a059]/30 overflow-hidden max-w-full">
+      <div className="border-[2px] sm:border-[3px] border-double border-[#1b382b] rounded-sm px-1.5 py-1.5 sm:px-3 sm:py-2.5 bg-[#fbf9f2] ring-1 ring-[#c5a059]/30 overflow-hidden max-w-full">
         <div
           dir="rtl"
-          className="font-quran leading-[1.6] sm:leading-[1.7] text-right select-none w-full max-w-full"
-          style={fontSize ? { fontSize: `clamp(13px, 3.8vw, ${fontSize}px)` } : undefined}
+          className="font-quran leading-[1.75] sm:leading-[1.9] text-right select-none w-full max-w-full"
+          style={{ fontSize: `${fontSize && fontSize >= 14 && fontSize <= 36 ? fontSize : 24}px` }}
         >
           {children}
         </div>

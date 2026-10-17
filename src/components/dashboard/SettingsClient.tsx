@@ -219,6 +219,43 @@ export function SettingsClient() {
             </button>
           ))}
         </div>
+
+        {/* Live Mushaf Sample Preview */}
+        <div className="mt-4 pt-3.5 border-t border-emerald-900/60">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-xs text-emerald-300/80 font-medium">
+              Live Mushaf Preview ({fontSize}px):
+            </span>
+            <span className="text-[11px] text-emerald-400/70 font-mono">
+              Taj 16-Line PDF Layout
+            </span>
+          </div>
+
+          <div className="bg-[#fcfaf5] text-[#13281d] rounded-xl p-2 sm:p-3 border border-[#d9ccb0] shadow-md max-w-full overflow-hidden">
+            <div className="border-[2px] border-double border-[#1b382b] rounded-sm px-2 py-2 bg-[#fbf9f2]">
+              <div
+                dir="rtl"
+                className="font-quran leading-[1.75] text-right select-none w-full"
+                style={{ fontSize: `${fontSize}px` }}
+              >
+                <div className="border-b border-[#1b382b]/30 pb-1 mb-1 flex items-baseline justify-between flex-nowrap whitespace-nowrap overflow-hidden">
+                  <span>بِسْمِ</span>
+                  <span>اللّٰهِ</span>
+                  <span>الرَّحْمٰنِ</span>
+                  <span>الرَّحِیْمِ</span>
+                  <span className="text-[#143323] text-[0.8em]">۝١</span>
+                </div>
+                <div className="flex items-baseline justify-between flex-nowrap whitespace-nowrap overflow-hidden">
+                  <span>الْحَمْدُ</span>
+                  <span>لِلّٰهِ</span>
+                  <span>رَبِّ</span>
+                  <span>الْعٰلَمِیْنَ</span>
+                  <span className="text-[#143323] text-[0.8em]">۝٢</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Theme */}

@@ -1,16 +1,35 @@
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
-import { useRouter } from "next/navigation";
-import { JILDS, type JildInfo } from "@/data/tarjama-meta";
+import { useState, useMemo, useEffect, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { JILDS, SURAH_TARJAMA_PAGES, type JildInfo } from "@/data/tarjama-meta";
 import surahsMeta from "@/data/surahs-meta.json";
 
-export function TarjamaClient() {
+function TarjamaContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [activeJildId, setActiveJildId] = useState<number>(1);
+  const [targetPage, setTargetPage] = useState<number | null>(null);
+  const [selectedSurahNumber, setSelectedSurahNumber] = useState<number | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [isSurahDrawerOpen, setIsSurahDrawerOpen] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
+
+  // Read URL query parameter ?surah=X if provided
+  useEffect(() => {
+    const surahParam = searchParams.get("surah");
+    if (surahParam) {
+      const sNum = parseInt(surahParam, 10);
+      if (!isNaN(sNum) && sNum >= 1 && sNum <= 114) {
+        const mapping = SURAH_TARJAMA_PAGES[sNum];
+        if (mapping) {
+          setActiveJildId(mapping.jildId);
+          setTargetPage(mapping.page);
+          setSelectedSurahNumber(sNum);
+        }
+      }
+    }
+  }, [searchParams]);
 
   // Automatically update Service Worker so old cached worker does not intercept PDFs
   useEffect(() => {
@@ -28,12 +47,18 @@ export function TarjamaClient() {
     [activeJildId]
   );
 
+  const selectedSurah = useMemo(() => {
+    if (!selectedSurahNumber) return null;
+    return surahsMeta.find((s) => s.number === selectedSurahNumber) ?? null;
+  }, [selectedSurahNumber]);
+
   // Filter surahs based on search query
   const filteredSurahs = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
     return surahsMeta.map((s) => {
-      const jild = JILDS.find((j) => j.surahNumbers.includes(s.number)) ?? JILDS[0];
-      return { ...s, jild };
+      const mapping = SURAH_TARJAMA_PAGES[s.number];
+      const jild = JILDS.find((j) => j.id === mapping?.jildId) ?? JILDS[0];
+      return { ...s, jild, page: mapping?.page ?? 1 };
     }).filter((s) => {
       if (!q) return true;
       return (
@@ -46,12 +71,31 @@ export function TarjamaClient() {
   }, [searchQuery]);
 
   const handleSelectSurah = (surahNumber: number) => {
-    const targetJild = JILDS.find((j) => j.surahNumbers.includes(surahNumber));
-    if (targetJild) {
-      setActiveJildId(targetJild.id);
+    const mapping = SURAH_TARJAMA_PAGES[surahNumber];
+    if (mapping) {
+      setActiveJildId(mapping.jildId);
+      setTargetPage(mapping.page);
+      setSelectedSurahNumber(surahNumber);
     }
     setIsSurahDrawerOpen(false);
   };
+
+  const handleSelectJild = (jildId: number) => {
+    setActiveJildId(jildId);
+    setTargetPage(1);
+    setSelectedSurahNumber(null);
+  };
+
+  const handleResetToCover = () => {
+    setTargetPage(1);
+    setSelectedSurahNumber(null);
+  };
+
+  // PDF URL with exact page hash for instant jumping
+  const currentPdfUrl = useMemo(() => {
+    const pageNum = targetPage && targetPage > 1 ? targetPage : 1;
+    return `${activeJild.fileName}#page=${pageNum}&view=FitH&toolbar=1&navpanes=1`;
+  }, [activeJild.fileName, targetPage]);
 
   return (
     <div className={`space-y-4 pb-12 ${isFullscreen ? "fixed inset-0 z-50 bg-[#06120b] p-2 sm:p-4 overflow-hidden" : ""}`}>
@@ -71,12 +115,12 @@ export function TarjamaClient() {
 
             <button
               onClick={() => setIsSurahDrawerOpen(true)}
-              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs sm:text-sm font-semibold text-emerald-100 bg-emerald-800/80 hover:bg-emerald-700 border border-emerald-500/70 shadow-[0_0_15px_rgba(16,185,129,0.25)] active:scale-95 transition-all cursor-pointer"
+              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs sm:text-sm font-semibold text-emerald-100 bg-emerald-700 hover:bg-emerald-600 border border-emerald-400/70 shadow-[0_0_15px_rgba(16,185,129,0.3)] active:scale-95 transition-all cursor-pointer"
             >
-              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2.3" viewBox="0 0 24 24">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2.3" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
               </svg>
-              <span>Surah Index (114)</span>
+              <span>سورت منتخب کریں (Surah Index 114)</span>
             </button>
           </div>
 
@@ -89,7 +133,7 @@ export function TarjamaClient() {
               Quran Tarjama & Tafseer (Kanz-ul-Irfan)
             </h1>
             <p className="text-xs sm:text-sm text-emerald-300/70 mt-1 max-w-xl mx-auto">
-              Mukammal 6 Jilds (Volumes) — Read authentic Urdu translation & commentary directly in-app.
+              Direct Surah Jump Enabled — kisi bhi Surah par click karein, PDF seedha usi Surah ke safah par khulay gi.
             </p>
           </div>
 
@@ -98,7 +142,7 @@ export function TarjamaClient() {
             {JILDS.map((j) => (
               <button
                 key={j.id}
-                onClick={() => setActiveJildId(j.id)}
+                onClick={() => handleSelectJild(j.id)}
                 className={`px-3 sm:px-4 py-1.5 rounded-xl text-xs sm:text-sm font-medium transition-all active:scale-95 cursor-pointer flex items-center gap-1.5 border ${
                   activeJildId === j.id
                     ? "bg-emerald-700 border-emerald-400 text-white shadow-[0_0_12px_rgba(16,185,129,0.35)] font-semibold"
@@ -117,16 +161,46 @@ export function TarjamaClient() {
       <div className={`bg-[#0c1c14]/90 border border-emerald-900/70 rounded-2xl sm:rounded-3xl p-2 sm:p-3.5 shadow-xl backdrop-blur-md flex flex-col ${isFullscreen ? "h-full" : ""}`}>
         {/* Viewer Sub-bar */}
         <div className="flex flex-wrap items-center justify-between gap-2 mb-2 px-1">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <span className="px-2.5 py-1 rounded-lg bg-emerald-950/80 border border-emerald-700/60 text-emerald-200 text-xs font-semibold">
               {activeJild.title} ({activeJild.urduTitle})
             </span>
-            <span className="text-xs text-emerald-300/70 hidden sm:inline">
-              {activeJild.parahRange} • {activeJild.surahRange}
-            </span>
+
+            {/* Direct Surah Jump Indicator Badge */}
+            {selectedSurah && targetPage ? (
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-emerald-800/90 border border-emerald-500/80 text-white text-xs font-semibold shadow-sm animate-fadeIn">
+                <span>📌 {selectedSurah.name} ({selectedSurah.arabicName})</span>
+                <span className="text-emerald-200 bg-emerald-950/70 px-1.5 py-0.2 rounded text-[11px]">
+                  Safah {targetPage}
+                </span>
+                <button
+                  onClick={handleResetToCover}
+                  title="Reset to Jild Cover"
+                  className="ml-1 text-emerald-300 hover:text-white cursor-pointer"
+                >
+                  ✕
+                </button>
+              </div>
+            ) : (
+              <span className="text-xs text-emerald-300/70 hidden sm:inline">
+                {activeJild.parahRange} • {activeJild.surahRange}
+              </span>
+            )}
           </div>
 
           <div className="flex items-center gap-1.5">
+            {/* Quick Change Surah Button */}
+            <button
+              onClick={() => setIsSurahDrawerOpen(true)}
+              className="px-2.5 py-1 rounded-lg bg-emerald-800/80 hover:bg-emerald-700 border border-emerald-500/70 text-emerald-100 text-xs font-medium flex items-center gap-1 transition-all active:scale-95 cursor-pointer"
+              title="Jump to another Surah"
+            >
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+              </svg>
+              <span>Jump Surah</span>
+            </button>
+
             {/* Open Fullscreen Button */}
             <button
               onClick={() => setIsFullscreen(!isFullscreen)}
@@ -152,11 +226,11 @@ export function TarjamaClient() {
 
             {/* Direct Open in New Tab Button */}
             <a
-              href={activeJild.fileName}
+              href={currentPdfUrl}
               target="_blank"
               rel="noopener noreferrer"
               className="px-2.5 py-1 rounded-lg bg-[#07170f] hover:bg-emerald-900/60 border border-emerald-800/70 text-emerald-200 text-xs font-medium flex items-center gap-1 transition-all active:scale-95 cursor-pointer"
-              title="Open full PDF in browser tab"
+              title="Open current page in browser tab"
             >
               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" />
@@ -182,8 +256,8 @@ export function TarjamaClient() {
         {/* High Performance Embedded PDF Frame & Mobile Card */}
         <div className={`w-full rounded-xl overflow-hidden border border-emerald-900/60 bg-[#06120b] shadow-inner relative ${isFullscreen ? "flex-1" : "h-[74vh] sm:h-[82vh]"}`}>
           <object
-            key={activeJild.fileName}
-            data={`${activeJild.fileName}#view=FitH&toolbar=1&navpanes=1`}
+            key={`${activeJild.fileName}-p${targetPage || 1}`}
+            data={currentPdfUrl}
             type="application/pdf"
             className="w-full h-full border-0"
           >
@@ -195,16 +269,22 @@ export function TarjamaClient() {
               <h3 className="text-lg sm:text-xl font-bold text-white mb-1.5 font-quran" dir="rtl">
                 {activeJild.urduTitle} ({activeJild.title})
               </h3>
-              <p className="text-xs sm:text-sm text-emerald-300 font-medium mb-1">
-                {activeJild.parahRange}
-              </p>
+              {selectedSurah && targetPage ? (
+                <p className="text-sm font-semibold text-emerald-300 mb-2">
+                  📌 {selectedSurah.name} ({selectedSurah.arabicName}) — Safah {targetPage}
+                </p>
+              ) : (
+                <p className="text-xs sm:text-sm text-emerald-300 font-medium mb-1">
+                  {activeJild.parahRange}
+                </p>
+              )}
               <p className="text-xs text-emerald-400/80 mb-5">
                 {activeJild.surahRange}
               </p>
 
               <div className="flex flex-col gap-2.5 w-full max-w-sm">
                 <a
-                  href={activeJild.fileName}
+                  href={currentPdfUrl}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-semibold text-xs sm:text-sm shadow-[0_4px_20px_rgba(16,185,129,0.35)] flex items-center justify-center gap-2 active:scale-95 transition-all cursor-pointer"
@@ -254,9 +334,14 @@ export function TarjamaClient() {
           <div className="bg-[#0b1a13] border border-emerald-800/80 rounded-2xl sm:rounded-3xl p-4 sm:p-5 w-full max-w-2xl max-h-[85vh] flex flex-col shadow-2xl">
             {/* Drawer Header */}
             <div className="flex items-center justify-between gap-2 pb-3 border-b border-emerald-900/70">
-              <h2 className="text-base sm:text-lg font-bold text-white flex items-center gap-2">
-                <span>Select Surah to Open in Tarjama</span>
-              </h2>
+              <div>
+                <h2 className="text-base sm:text-lg font-bold text-white flex items-center gap-2">
+                  <span>سورت منتخب کریں (Direct Jump to Surah)</span>
+                </h2>
+                <p className="text-xs text-emerald-400/70 mt-0.5">
+                  Click any Surah to jump straight to its exact page in the Tarjama PDF
+                </p>
+              </div>
               <button
                 onClick={() => setIsSurahDrawerOpen(false)}
                 className="w-7 h-7 flex items-center justify-center rounded-full bg-emerald-950/70 hover:bg-emerald-900 text-emerald-300 hover:text-white transition-colors cursor-pointer"
@@ -272,7 +357,7 @@ export function TarjamaClient() {
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Search Surah (e.g. Yaseen, Baqara, Kahf, 36)..."
+                  placeholder="Search Surah (e.g. Yaseen, Baqara, Kahf, Rahman, 36)..."
                   className="w-full px-3.5 py-2 pl-9 rounded-xl bg-[#06140d] border border-emerald-800/80 text-white placeholder-emerald-400/40 text-xs sm:text-sm focus:outline-none focus:border-emerald-400 transition-colors"
                 />
                 <svg
@@ -289,38 +374,51 @@ export function TarjamaClient() {
 
             {/* Surah List */}
             <div className="flex-1 overflow-y-auto space-y-1.5 pr-1 divide-y divide-emerald-950/60">
-              {filteredSurahs.map((s) => (
-                <button
-                  key={s.number}
-                  onClick={() => handleSelectSurah(s.number)}
-                  className={`w-full flex items-center justify-between p-2.5 rounded-xl hover:bg-[#0e271a] transition-all text-left group cursor-pointer ${
-                    activeJild.surahNumbers.includes(s.number) ? "bg-[#091f14]/60" : ""
-                  }`}
-                >
-                  <div className="flex items-center gap-2.5">
-                    <span className="w-7 h-7 rounded-lg bg-emerald-900/60 border border-emerald-700/60 flex items-center justify-center text-xs font-bold text-emerald-200">
-                      {s.number}
-                    </span>
-                    <div>
-                      <div className="text-xs sm:text-sm font-semibold text-white group-hover:text-emerald-200 transition-colors">
-                        {s.name}
-                      </div>
-                      <div className="text-[10px] text-emerald-400/70">
-                        {s.translation} • {s.numberOfAyahs} Ayahs
+              {filteredSurahs.map((s) => {
+                const isSelected = selectedSurahNumber === s.number;
+                return (
+                  <button
+                    key={s.number}
+                    onClick={() => handleSelectSurah(s.number)}
+                    className={`w-full flex items-center justify-between p-2.5 rounded-xl hover:bg-[#0e271a] transition-all text-left group cursor-pointer ${
+                      isSelected
+                        ? "bg-emerald-900/60 border border-emerald-500/60"
+                        : activeJild.surahNumbers.includes(s.number)
+                        ? "bg-[#091f14]/50"
+                        : ""
+                    }`}
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <span className={`w-7 h-7 rounded-lg border flex items-center justify-center text-xs font-bold ${
+                        isSelected
+                          ? "bg-emerald-600 border-emerald-300 text-white shadow-sm"
+                          : "bg-emerald-900/60 border-emerald-700/60 text-emerald-200"
+                      }`}>
+                        {s.number}
+                      </span>
+                      <div>
+                        <div className="text-xs sm:text-sm font-semibold text-white group-hover:text-emerald-200 transition-colors">
+                          {s.name}
+                        </div>
+                        <div className="text-[10px] text-emerald-400/70">
+                          {s.translation} • {s.numberOfAyahs} Ayahs
+                        </div>
                       </div>
                     </div>
-                  </div>
 
-                  <div className="flex items-center gap-2">
-                    <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-emerald-950/80 border border-emerald-800/60 text-emerald-300">
-                      {s.jild.title} ({s.jild.urduTitle})
-                    </span>
-                    <span className="text-base sm:text-lg font-quran text-emerald-200" dir="rtl">
-                      {s.arabicName}
-                    </span>
-                  </div>
-                </button>
-              ))}
+                    <div className="flex items-center gap-2">
+                      <div className="flex flex-col items-end gap-0.5">
+                        <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-emerald-950/80 border border-emerald-800/60 text-emerald-300">
+                          {s.jild.title} • Safah {s.page}
+                        </span>
+                      </div>
+                      <span className="text-base sm:text-lg font-quran text-emerald-200" dir="rtl">
+                        {s.arabicName}
+                      </span>
+                    </div>
+                  </button>
+                );
+              })}
 
               {filteredSurahs.length === 0 && (
                 <div className="text-center py-8 text-emerald-400/60 text-xs sm:text-sm">
@@ -332,5 +430,19 @@ export function TarjamaClient() {
         </div>
       )}
     </div>
+  );
+}
+
+export function TarjamaClient() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-[60vh] flex items-center justify-center text-emerald-400 font-medium">
+          Loading Tarjama & Tafseer...
+        </div>
+      }
+    >
+      <TarjamaContent />
+    </Suspense>
   );
 }
